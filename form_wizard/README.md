@@ -18,6 +18,18 @@ and the Flutter guide for
 
 > The most customizable, lightweight, and powerful form builder for Flutter.
 
+## ✨ Demo
+
+### 🖼️ Clean Form UI
+![Form Preview](https://raw.githubusercontent.com/Tanay610/form_wizard/main/screenshots/gif-1.gif)
+
+### ✅ Real-time Validation
+![Validation](https://raw.githubusercontent.com/Tanay610/form_wizard/main/screenshots/gif-2.gif)
+
+### 🔐 Password Visibility Toggle
+![Password Toggle](https://raw.githubusercontent.com/Tanay610/form_wizard/main/screenshots/gif-3.gif)
+
+
 ---
 
 ### ✨ Features

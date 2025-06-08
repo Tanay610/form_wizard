@@ -144,10 +144,7 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
       type: FieldType.number,
       validators: [
         Validators.required(),
-        Validators.regex(
-          RegExp(r'^[a-zA-Z0-9_]+$'),
-          message: 'Only numbers are allowed',
-        ),
+        Validators.number()
       ],
       decorationBuilder:
           (errorText, controller) => InputDecoration(
