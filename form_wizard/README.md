@@ -38,3 +38,226 @@ and the Flutter guide for
 
 ```markdown
 ![Form Wizard Demo](https://raw.githubusercontent.com/your-username/form_wizard/main/example/screenshots/demo.gif)
+```
+
+---
+
+## 🧪 Usage
+
+Here’s how to use `FormWizard` in your project:
+
+### 🪄 Step-by-Step
+
+1. **Initialize a controller** to manage form state.
+2. **Wrap your fields** with `FormWizard` and pass the controller.
+3. **Define fields** using `FormWizardField`.
+4. **Provide validators** if needed.
+5. **Handle submission** using `onSubmit`.
+
+```dart
+
+final formController = FormWizardController();
+
+FormWizard(
+  controller: formController,
+  fields: [
+    FormWizardFieldModel(
+      name: 'email',
+      label: 'Email',
+      hint: 'Enter your email address',
+      type: FieldType.email,
+      validators: [
+        Validators.required(),
+        Validators.email(),
+      ],
+    ),
+    FormWizardFieldModel(
+      name: 'password',
+      label: 'Password',
+      type: FieldType.password,
+      hint: 'Enter a strong password',
+      validators: [
+        Validators.required(),
+        Validators.minLength(8),
+      ],
+    ),
+    FormWizardFieldModel(
+      name: 'dob',
+      label: 'Date of Birth',
+      type: FieldType.date,
+    ),
+    FormWizardFieldModel(
+      name: 'gender',
+      label: 'Gender',
+      type: FieldType.dropdown,
+      dropdownOptions: ['Male', 'Female', 'Other'],
+    ),
+  ],
+    onSubmit: (values) {
+        showDialog(
+        context: context,
+        builder:
+            (_) => AlertDialog(
+                title: const Text('Form Submitted'),
+                content: Text(values.toString()),
+            ),
+        );
+    },
+)
+```
+
+---
+
+## 🧱 Supported Field Types
+
+| Field Type | Description                              |
+| ---------- | ---------------------------------------- |
+| `text`     | Standard text field                      |
+| `email`    | Validates email format                   |
+| `password` | With obsecure text                       |
+| `number`   | Numeric input                            |
+| `date`     | Date picker with formatting              |
+| `dropdown` | Dropdown menu from a list of options     |
+| `custom`   | Pass your own widget via `customBuilder` |
+
+---
+
+## 🎨 Custom Decoration
+
+Use `decorationBuilder` to pass your own `InputDecoration`:
+
+```dart
+ FormWizardFieldModel(
+      name: 'username',
+      label: 'Username',
+      type: FieldType.text,
+      validators: [
+        Validators.required(),
+        Validators.regex(
+          RegExp(r'^[a-zA-Z0-9_]+$'),
+          message: 'Only letters, numbers and underscores allowed',
+        ),
+      ],
+      decorationBuilder:
+          (errorText, controller) => InputDecoration(
+            prefixIcon: const Icon(Icons.person),
+            suffixIcon: Builder(
+              builder: (context) {
+                if (controller.text.isEmpty) {
+                  return SizedBox();
+                }
+                return IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    controller.clear();
+                  },
+                );
+              },
+            ),
+            labelText: 'Username',
+            hintText: 'e.g. tanay_dev_99',
+            helperText: 'Only letters, numbers, and underscore allowed',
+            errorText: errorText,
+            errorStyle: TextStyle(color: Colors.red[800]),
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.indigo, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+    ),
+```
+
+---
+
+## 🛠️ Validators
+
+Use the built-in `Validators` class:
+
+```dart
+validators: [   Validators.required(),   Validators.email(),   Validators.minLength(6), Validators.maxLength(6), Validators.number(),  Validators.regex() ]
+```
+
+Or define your own:
+
+```dart
+validators: [   (value) => value == 'magic' ? null : 'Only "magic" is accepted!', ]
+```
+
+---
+
+## 💡 Custom Field Widget
+
+```dart
+ FormWizardFieldModel(
+      name: 'custom_slider',
+      label: 'Custom Field',
+      type: FieldType.custom,
+      customBuilder: (controller, errorText, onChanged) {
+        double value = double.tryParse(controller.text) ?? 0.0;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Select value"),
+            Slider(
+              min: 0,
+              max: 100,
+              divisions: 100,
+              value: value,
+              onChanged: (val) {
+                controller.text = val.toString();
+                onChanged(val.toString());
+              },
+            ),
+            if (errorText != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 4),
+                child: Text(
+                  errorText,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+          ],
+        );
+      },
+      validators: [
+        (val) {
+          final v = double.tryParse(val ?? '');
+          if (v == null || v < 20) return "Value must be at least 20";
+          return null;
+        },
+      ],
+    ),
+```
+
+---
+
+## 🔗 API Reference
+
+👉 form_wizard API Docs on pub.dev
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions!
+
+1.  Fork this repo
+2.  Create your feature branch (`git checkout -b feature/awesome-feature`)
+3.  Commit your changes (`git commit -m 'Add awesome feature'`)
+4.  Push to the branch (`git push origin feature/awesome-feature`)
+5.  Open a Pull Request
+
+---
+
+## 📃 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+> Crafted with ❤️ by [Tanay](https://github.com/Tanay610) & powered by Flutter + GetX.

@@ -14,16 +14,7 @@ class FormWizardField extends StatelessWidget {
     required this.controller,
   });
 
-  TextInputType _getKeyboardType(FieldType type) {
-    switch (type) {
-      case FieldType.email:
-        return TextInputType.emailAddress;
-      case FieldType.number:
-        return TextInputType.number;
-      default:
-        return TextInputType.text;
-    }
-  }
+
 
   // bool _isObscure(FieldType type) => type == FieldType.password;
 
