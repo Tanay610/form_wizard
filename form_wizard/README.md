@@ -43,17 +43,6 @@ and the Flutter guide for
 
 ---
 
-### 🧪 Preview
-
-> 📸 Add screenshots or demo GIFs here  
-> Place them in `/example/screenshots/` and link like this:
-
-```markdown
-![Form Wizard Demo](https://raw.githubusercontent.com/your-username/form_wizard/main/example/screenshots/demo.gif)
-```
-
----
-
 ## 🧪 Usage
 
 Here’s how to use `FormWizard` in your project:
