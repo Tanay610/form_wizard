@@ -14,7 +14,7 @@ and the Flutter guide for
 # 🧙‍♂️ form_wizard
 
 [![pub package](https://img.shields.io/pub/v/form_wizard.svg)](https://pub.dev/packages/form_wizard)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Open-blue)](https://github.com/your-username/form_wizard)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Open-blue)](https://github.com/Tanay610/form_wizard)
 
 > The most customizable, lightweight, and powerful form builder for Flutter.
 
