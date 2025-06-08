@@ -253,16 +253,38 @@ validators: [   (value) => value == 'magic' ? null : 'Only "magic" is accepted!'
 👉 form_wizard API Docs on pub.dev
 
 ---
-
 ## 🤝 Contributing
 
-We welcome contributions!
+We welcome contributions from the community to make **FormWizard** even better, smarter, and more flexible!
 
-1.  Fork this repo
-2.  Create your feature branch (`git checkout -b feature/awesome-feature`)
-3.  Commit your changes (`git commit -m 'Add awesome feature'`)
-4.  Push to the branch (`git push origin feature/awesome-feature`)
-5.  Open a Pull Request
+Whether it's fixing bugs, adding new features, improving documentation, or just sharing ideas — every contribution counts.
+
+### 🚀 How to Contribute
+
+1. **Fork** the repository.
+2. Create a new branch: `git checkout -b your-feature-name`
+3. Make your changes and commit them with clear messages.
+4. **Push** to your fork: `git push origin your-feature-name`
+5. Open a **Pull Request** on the `main` branch.
+
+### 🧠 Contribution Ideas
+
+- Add more custom field types (e.g., phone number, image picker, multi-select).
+- Improve accessibility (a11y) support.
+- Create more built-in decorators or validators.
+- Help write or translate documentation.
+- Suggest enhancements or refactor logic.
+
+### 📝 Guidelines
+
+- Follow Flutter/Dart formatting: `dart format .`
+- Keep your PR focused and well-scoped.
+- Update tests and examples if needed.
+- Be kind and respectful in code reviews.
+
+---
+
+Thanks for helping make `FormWizard` the smartest form solution for Flutter! ❤️
 
 ---
 
