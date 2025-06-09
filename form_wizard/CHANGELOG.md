@@ -1,5 +1,5 @@
 
-## [0.0.1] - 2025-06-07
+## [0.0.2]
 
 🎉 Initial release of `form_wizard` — the smartest, lightest, and most customizable form handling package for Flutter!
 
