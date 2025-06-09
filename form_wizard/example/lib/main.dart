@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:form_wizard/form_wizard_main.dart';
+import 'package:form_wizard/form_wizard.dart';
 import 'package:intl/intl.dart';
 
 void main() {
