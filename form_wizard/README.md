@@ -21,10 +21,10 @@ and the Flutter guide for
 ## ✨ Demo
 
 ### 🐧 Clean Form UI
-![Form Preview](https://github.com/Tanay610/form_wizard/blob/main/form_wizard/screenshots/gif-1.gif)
+![Form Preview](https://raw.githubusercontent.com/Tanay610/form_wizard/main/form_wizard/screenshots/gif-1.gif)
 
 ### 🌩️ Real-time Validation
-![Validation](https://github.com/Tanay610/form_wizard/blob/main/form_wizard/screenshots/gif-2.gif)
+![Validation](https://raw.githubusercontent.com/Tanay610/form_wizard/main/form_wizard/screenshots/gif-2.gif)
 
 ### 🪛 Custom Widget Validation
 ![Custom Widget](https://github.com/Tanay610/form_wizard/blob/main/form_wizard/screenshots/gif-3.gif)
