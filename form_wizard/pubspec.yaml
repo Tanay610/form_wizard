@@ -1,7 +1,14 @@
 name: form_wizard
-description: "A new Flutter package project."
+description: >
+  The smartest, most customizable, and lightweight form validation and builder package for Flutter.
+repository: https://github.com/Tanay610/form_wizard
+topics:
+  - form
+  - validation
+  - flutter-form
+  - input
+  - smart-form
 version: 0.0.1
-homepage:
 
 environment:
   sdk: ^3.7.2
