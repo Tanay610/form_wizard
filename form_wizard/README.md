@@ -27,7 +27,7 @@ and the Flutter guide for
 ![Validation](https://raw.githubusercontent.com/Tanay610/form_wizard/main/form_wizard/screenshots/gif-2.gif)
 
 ### 🪛 Custom Widget Validation
-![Custom Widget](https://github.com/Tanay610/form_wizard/blob/main/form_wizard/screenshots/gif-3.gif)
+![Custom Widget](https://raw.githubusercontent.com/Tanay610/form_wizard/main/form_wizard/screenshots/gif-3.gif)
 
 
 ---
