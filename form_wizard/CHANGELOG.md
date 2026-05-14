@@ -1,17 +1,25 @@
+## 0.1.0
 
-## [0.0.2]
+### ✨ New Features
+- **FormWizardStepper**: Multi-step forms with step isolation
+- **Conditional Visibility**: Show/hide fields reactively
+- **Dynamic Field Arrays**: Add/remove/reorder repeating field groups
+- **Built-in Templates**: LoginForm, SignupForm, OTPVerificationForm, AddressForm, PaymentForm
+- **Field Presets**: emailField, phoneField, passwordField, otpField, nameField, streetField, cityField, zipField, countryDropdown
 
-🎉 Initial release of `form_wizard` — the smartest, lightest, and most customizable form handling package for Flutter!
+### ⚡ Performance Upgrade
+- Stepper only rebuilds on navigation or current step validity change
+- Inactive steps are disposed (zero memory overhead)
+- Each field watches only its own value via `.select()`
 
-### 🚀 Features
+### 🔧 Internal
+- Upgraded `flutter_riverpod` to `^3.3.1`
+- Migrated to `NotifierProvider` internally
 
-- 🔧 **SmartForm** controller: centralized form state, validation, and value management.
-- 🧠 Built-in validators: email, phone, password, required, regex, and more.
-- 🧩 Support for common field types: text, number, email, password, dropdown, date picker.
-- 🎨 Fully customizable fields: prefix/suffix, decorationBuilder, obscure toggle, and more.
-- 🛠️ `customBuilder` support for total control of UI/UX.
-- ♻️ Real-time error display and state handling with GetX.
+### 📚 Documentation
+- Updated README with all new features
+- Added performance comparison section
+- Added API reference for templates
 
----
-
-We're just getting started — many more features and improvements to come! 🙌
+### Breaking Changes
+- None (fully backward compatible)

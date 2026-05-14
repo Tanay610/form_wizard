@@ -44,10 +44,34 @@ class Validators {
     };
   }
 
+  static Validator phone({String message = 'Invalid phone number'}) {
+    return (value) {
+      if (value == null || value.isEmpty) return null;
+      final phoneRegex = RegExp(r'^\+?[0-9\s\-()]{7,20}$');
+      return phoneRegex.hasMatch(value) ? null : message;
+    };
+  }
+
+  static Validator exactLength(int length, {String? message}) {
+    return (value) {
+      if (value == null || value.length != length) {
+        return message ?? 'Must be $length characters';
+      }
+      return null;
+    };
+  }
+
+  static Validator matches(
+    String otherValue, {
+    String message = 'Values do not match',
+  }) {
+    return (value) => value == otherValue ? null : message;
+  }
+
   static Validator regex(RegExp pattern, {String message = 'Invalid format'}) {
-  return (value) {
-    if (value == null || value.isEmpty) return null;
-    return pattern.hasMatch(value) ? null : message;
-  };
-}
+    return (value) {
+      if (value == null || value.isEmpty) return null;
+      return pattern.hasMatch(value) ? null : message;
+    };
+  }
 }

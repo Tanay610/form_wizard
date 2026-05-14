@@ -29,90 +29,38 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
   final FormWizardController _controller = FormWizardController();
 
   final List<FormWizardFieldModel> _fields = [
-    FormWizardFieldModel(
-      name: 'username',
-      label: 'Username',
-      type: FieldType.text,
-      validators: [
-        Validators.required(),
-        Validators.regex(
-          RegExp(r'^[a-zA-Z0-9_]+$'),
-          message: 'Only letters, numbers and underscores allowed',
-        ),
-      ],
-      decorationBuilder:
-          (errorText, controller) => InputDecoration(
-            prefixIcon: const Icon(Icons.person),
-            suffixIcon: Builder(
-              builder: (context) {
-                if (controller.text.isEmpty) {
-                  return SizedBox();
-                }
-                return IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    controller.clear();
-                  },
-                );
-              },
-            ),
-            labelText: 'Username',
-            hintText: 'e.g. tanay_dev_99',
-            helperText: 'Only letters, numbers, and underscore allowed',
-            errorText: errorText,
-            errorStyle: TextStyle(color: Colors.red[800]),
-            // filled: true,
-            // fillColor: Colors.grey[200],
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.indigo,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(
-              borderSide: const BorderSide(color: Colors.indigo, width: 2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-    ),
+    FormWizardFieldPresets.nameField(label: 'Full Name', required: true),
 
-    FormWizardFieldModel(
-      name: 'email',
-      label: 'Email Address',
-      type: FieldType.email,
-      validators: [Validators.required(), Validators.email()],
-      decorationBuilder:
-          (errorText, controller) => InputDecoration(
-            prefixIcon: const Icon(Icons.email),
-            labelText: 'Email',
-            errorText: errorText,
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-            ),
-          ),
-    ),
-    FormWizardFieldModel(
-      name: 'password',
-      label: 'Password',
-      type: FieldType.custom,
-      validators: [Validators.required(), Validators.minLength(6)],
-      customBuilder: (controller, errorText, onChanged) {
-        return _PasswordFieldWithToggle(
-          controller: controller,
-          errorText: errorText,
-          onChanged: onChanged,
-        );
-      },
-    ),
-    FormWizardFieldModel(
-      name: 'country',
+    FormWizardFieldPresets.emailField(label: 'Email Address', required: true),
+    FormWizardFieldPresets.passwordField(label: 'Password', required: true),
+   FormWizardFieldPresets.countryDropdown(
       label: 'Country',
-      type: FieldType.dropdown,
-      options: ['India', 'USA', 'Canada'],
+      required: true,
+      countries: const [
+        'USA',
+        'Australia',
+        'Brazil',
+        'Canada',
+        'France',
+        'Germany',
+        'India',
+        'Japan',
+        'United Kingdom',
+        'United States',
+      ],
+    ),
+    FormWizardFieldModel(
+      name: 'state',
+      label: 'State',
+      type: FieldType.text,
+      hint: 'Required only for USA',
       validators: [Validators.required()],
+      visibleWhenDependsOn: const ['country'],
+      visibleWhen: (values) => values['country'] == 'USA',
       decorationBuilder:
           (errorText, controller) => InputDecoration(
-            prefixIcon: const Icon(Icons.flag),
-            labelText: 'Country',
+            prefixIcon: const Icon(Icons.map),
+            labelText: 'State',
             errorText: errorText,
             border: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -134,7 +82,7 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
           border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
-        );  
+        );
       },
     ),
 
@@ -142,10 +90,7 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
       name: 'number',
       label: 'Number',
       type: FieldType.number,
-      validators: [
-        Validators.required(),
-        Validators.number()
-      ],
+      validators: [Validators.required(), Validators.number()],
       decorationBuilder:
           (errorText, controller) => InputDecoration(
             prefixIcon: const Icon(Icons.phone),
@@ -198,6 +143,12 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
   ];
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('FormWizard Demo')),
@@ -206,6 +157,36 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
         child: SingleChildScrollView(
           child: FormWizard(
             fields: _fields,
+            fieldArrays: [
+              FormWizardFieldArrayModel(
+                name: 'phones',
+                label: 'Phone Numbers',
+                initialItemCount: 1,
+                minItems: 1,
+                maxItems: 4,
+                fieldBuilder: (item) {
+                  return [
+                    FormWizardFieldModel(
+                      name: item.fieldName('number'),
+                      label: 'Phone ${item.index + 1}',
+                      type: FieldType.number,
+                      validators: [Validators.required(), Validators.number()],
+                      decorationBuilder:
+                          (errorText, controller) => InputDecoration(
+                            prefixIcon: const Icon(Icons.phone),
+                            labelText: 'Phone ${item.index + 1}',
+                            errorText: errorText,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
+                            ),
+                          ),
+                    ),
+                  ];
+                },
+              ),
+            ],
             controller: _controller,
             onSubmit: (values) {
               showDialog(
@@ -224,42 +205,68 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
   }
 }
 
-class _PasswordFieldWithToggle extends StatefulWidget {
-  final TextEditingController controller;
-  final String? errorText;
-  final Function(String) onChanged;
-
-  const _PasswordFieldWithToggle({
-    required this.controller,
-    required this.errorText,
-    required this.onChanged,
-  });
-
-  @override
-  State<_PasswordFieldWithToggle> createState() =>
-      _PasswordFieldWithToggleState();
-}
-
-class _PasswordFieldWithToggleState extends State<_PasswordFieldWithToggle> {
-  bool _obscure = true;
+class LoginFormTemplate extends StatelessWidget {
+  const LoginFormTemplate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: widget.controller,
-      obscureText: _obscure,
-      onChanged: widget.onChanged,
-      decoration: InputDecoration(
-        labelText: 'Password',
-        hintText: 'Enter your password',
-        errorText: widget.errorText,
-        prefixIcon: const Icon(Icons.lock),
-        suffixIcon: IconButton(
-          icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-          onPressed: () => setState(() => _obscure = !_obscure),
+    return  LoginForm(
+      onLogin: (name,password){
+        showDialog(
+          context: context,
+          builder:
+              (_) => AlertDialog(
+                title: const Text('Login Submitted'),
+                content: Text('Identity: $name\nPassword: $password'),
+              ),
+        );
+    });
+  }
+}
+
+
+class FormStepperWidget extends StatelessWidget {
+   FormStepperWidget({super.key});
+
+   Map<String, dynamic>? finished;
+    var changedStep = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return  MaterialApp(
+        home: Scaffold(
+          body: FormWizardStepper(
+            steps: [
+              FormWizardStep(
+                title: 'Personal',
+                fields: [FormWizard.nameField(name: 'name')],
+              ),
+              FormWizardStep(
+                title: 'Contact',
+                fields: [FormWizard.emailField(name: 'email')],
+              ),
+            ],
+            onStepChanged: (step) => changedStep = step,
+            onFinish: (values) => finished = values,
+            stepBuilder: (context, stepper) {
+              return Column(
+                children: [
+                  Text(stepper.steps[stepper.currentStep].title),
+                  stepper.fields,
+                  ElevatedButton(
+                    key: const ValueKey<String>('next-step'),
+                    onPressed: stepper.onNext,
+                    child: Text(
+                      stepper.currentStep == stepper.steps.length - 1
+                          ? 'Finish'
+                          : 'Next',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+      );
   }
 }

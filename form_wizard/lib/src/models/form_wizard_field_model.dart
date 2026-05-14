@@ -1,34 +1,40 @@
 import 'package:flutter/material.dart';
 
-enum FieldType {
-  text,
-  number,
-  password,
-  email,
-  custom,
-  dropdown,
-  date,
-}
+import '../validators/validators.dart';
+
+enum FieldType { text, number, password, email, custom, dropdown, date }
+
+/// Predicate used to decide whether a field should be visible.
+typedef FormWizardVisibilityPredicate =
+    bool Function(Map<String, dynamic> values);
 
 class FormWizardFieldModel {
+  /// Creates a field definition used by [FormWizard].
   final String name;
   final String label;
   final FieldType type;
 
   final String? hint;
   final String? initialValue;
-  final List<String? Function(String?)>? validators;
+  final List<Validator>? validators;
 
   final TextInputType? keyboardType;
   final bool? obscureText;
-    final InputDecoration Function(String? errorText, TextEditingController controller)? decorationBuilder;
-    final List<String>? options; // for dropdown
-final String Function(DateTime)? dateFormatter;
+  final InputDecoration Function(
+    String? errorText,
+    TextEditingController controller,
+  )?
+  decorationBuilder;
+  final List<String>? options;
+  final String Function(DateTime)? dateFormatter;
+  final FormWizardVisibilityPredicate? visibleWhen;
+  final List<String> visibleWhenDependsOn;
   final Widget Function(
     TextEditingController controller,
     String? errorText,
     void Function(String) onChanged,
-  )? customBuilder;
+  )?
+  customBuilder;
 
   FormWizardFieldModel({
     required this.name,
@@ -42,10 +48,11 @@ final String Function(DateTime)? dateFormatter;
     this.decorationBuilder,
     this.customBuilder,
     this.options,
-    this.dateFormatter
+    this.dateFormatter,
+    this.visibleWhen,
+    this.visibleWhenDependsOn = const <String>[],
   });
 }
-
 
 extension SmartFormFieldModelExtension on FormWizardFieldModel {
   bool get isPassword => type == FieldType.password;

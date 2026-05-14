@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../controller/form_wizard_controller.dart';
 import '../models/form_wizard_field_model.dart';
+import '../providers/form_providers.dart';
 
-class FormWizardField extends StatelessWidget {
+/// A self-contained form field that listens only to its own value and error.
+class FormWizardField extends ConsumerStatefulWidget {
   final FormWizardFieldModel model;
   final FormWizardController controller;
 
@@ -14,111 +17,141 @@ class FormWizardField extends StatelessWidget {
     required this.controller,
   });
 
+  @override
+  ConsumerState<FormWizardField> createState() => _FormWizardFieldState();
+}
 
+class _FormWizardFieldState extends ConsumerState<FormWizardField> {
+  late final TextEditingController _textController;
 
-  // bool _isObscure(FieldType type) => type == FieldType.password;
+  FormWizardFieldModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: model.initialValue ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant FormWizardField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.name != widget.model.name ||
+        oldWidget.model.initialValue != widget.model.initialValue) {
+      _textController.text = widget.model.initialValue ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _syncController(dynamic value) {
+    final nextText = value?.toString() ?? '';
+    if (_textController.text == nextText) return;
+
+    _textController.value = _textController.value.copyWith(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: nextText.length),
+      composing: TextRange.empty,
+    );
+  }
+
+  void _onChanged(String value) {
+    setState(() {});
+    ref.read(formStateProvider.notifier).updateFieldValue(model.name, value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final textController = TextEditingController(
-      text: controller.getValue(model.name) ?? model.initialValue ?? '',
+    final value = ref.watch(
+      formStateProvider.select((state) => state.values[model.name]),
     );
+    final errorText = ref.watch(
+      formStateProvider.select((state) => state.errors[model.name]),
+    );
+    _syncController(value);
 
-    return Obx(() {
-      final errorText = controller.getError(model.name);
+    if (model.type == FieldType.custom && model.customBuilder != null) {
+      return model.customBuilder!(_textController, errorText, _onChanged);
+    }
 
-      void onChanged(String val) {
-        controller.setValue(model.name, val);
-        controller.validateField(model.name, val, model.validators);
-      }
-
-      // If user provides a custom builder, use that
-      if (model.type == FieldType.custom && model.customBuilder != null) {
-        return model.customBuilder!(textController, errorText, onChanged);
-      }
-
-      // If user provides a custom builder, use that
-      if (model.type == FieldType.custom && model.customBuilder != null) {
-        return model.customBuilder!(textController, errorText, onChanged);
-      }
-
-      // 🎯 Handle Dropdown field
-      if (model.type == FieldType.dropdown && model.options != null) {
-        return DropdownButtonFormField<String>(
-          value: textController.text.isNotEmpty ? textController.text : null,
-          items:
-              model.options!
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-          onChanged: (val) {
-            if (val != null) {
-              textController.text = val;
-              onChanged(val);
-            }
-          },
-          decoration:
-              model.decorationBuilder?.call(errorText, textController) ??
-              InputDecoration(
-                labelText: model.label,
-                errorText: errorText,
-                border: const OutlineInputBorder(),
-              ),
-        );
-      }
-
-      // 🎯 Handle Date Picker field
-      if (model.type == FieldType.date) {
-        return TextFormField(
-          controller: textController,
-          readOnly: true,
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime(1900),
-              lastDate: DateTime(2100),
-            );
-            if (picked != null) {
-              final formatted =
-                  model.dateFormatter?.call(picked) ??
-                  DateFormat('yyyy-MM-dd').format(picked);
-              textController.text = formatted;
-              onChanged(formatted);
-            }
-          },
-          decoration:
-              model.decorationBuilder?.call(errorText, textController) ??
-              InputDecoration(
-                labelText: model.label,
-                hintText: 'Select a date',
-                errorText: errorText,
-                border: const OutlineInputBorder(),
-              ),
-        );
-      }
-
-      // Default field rendering
-      return TextFormField(
-        controller: textController,
-        obscureText: model.obscureText ?? model.type == FieldType.password,
-        keyboardType:
-            model.keyboardType ??
-            (model.type == FieldType.number
-                ? TextInputType.number
-                : model.type == FieldType.email
-                ? TextInputType.emailAddress
-                : TextInputType.text),
+    if (model.type == FieldType.dropdown && model.options != null) {
+      return DropdownButtonFormField<String>(
+        initialValue:
+            _textController.text.isNotEmpty ? _textController.text : null,
+        items: [
+          for (final option in model.options!)
+            DropdownMenuItem<String>(value: option, child: Text(option)),
+        ],
+        onChanged: (value) {
+          if (value == null) return;
+          _textController.text = value;
+          _onChanged(value);
+        },
         decoration:
-            model.decorationBuilder != null
-                ? model.decorationBuilder!(errorText, textController)
-                : InputDecoration(
-                  labelText: model.label,
-                  hintText: model.hint,
-                  errorText: errorText,
-                  border: const OutlineInputBorder(),
-                ),
-        onChanged: onChanged,
+            model.decorationBuilder?.call(errorText, _textController) ??
+            InputDecoration(
+              labelText: model.label,
+              errorText: errorText,
+              border: const OutlineInputBorder(),
+            ),
       );
-    });
+    }
+
+    if (model.type == FieldType.date) {
+      return TextFormField(
+        controller: _textController,
+        readOnly: true,
+        onTap: () async {
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(1900),
+            lastDate: DateTime(2100),
+          );
+          if (picked == null) return;
+
+          final formatted =
+              model.dateFormatter?.call(picked) ??
+              DateFormat('yyyy-MM-dd').format(picked);
+          _textController.text = formatted;
+          _onChanged(formatted);
+        },
+        decoration:
+            model.decorationBuilder?.call(errorText, _textController) ??
+            InputDecoration(
+              labelText: model.label,
+              hintText: 'Select a date',
+              errorText: errorText,
+              border: const OutlineInputBorder(),
+            ),
+      );
+    }
+
+    return TextFormField(
+      controller: _textController,
+      obscureText: model.obscureText ?? model.type == FieldType.password,
+      keyboardType: model.keyboardType ?? _keyboardTypeFor(model.type),
+      decoration:
+          model.decorationBuilder != null
+              ? model.decorationBuilder!(errorText, _textController)
+              : InputDecoration(
+                labelText: model.label,
+                hintText: model.hint,
+                errorText: errorText,
+                border: const OutlineInputBorder(),
+              ),
+      onChanged: _onChanged,
+    );
+  }
+
+  TextInputType _keyboardTypeFor(FieldType type) {
+    return switch (type) {
+      FieldType.number => TextInputType.number,
+      FieldType.email => TextInputType.emailAddress,
+      _ => TextInputType.text,
+    };
   }
 }
