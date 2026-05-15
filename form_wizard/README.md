@@ -11,7 +11,7 @@ and the Flutter guide for
 [developing packages and plugins](https://flutter.dev/to/develop-packages).
 -->
 
-# form_wizard
+# form_wizard <span style="font-size: 3rem;">🧙‍♂️</span>
 
 [![pub package](https://img.shields.io/pub/v/form_wizard.svg)](https://pub.dev/packages/form_wizard)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Open-blue)](https://github.com/Tanay610/form_wizard)
