@@ -196,6 +196,7 @@ class FormWizardFieldPresets {
   }
 }
 
+
 class _PasswordFieldPreset extends StatefulWidget {
   const _PasswordFieldPreset({
     required this.controller,
@@ -216,25 +217,42 @@ class _PasswordFieldPreset extends StatefulWidget {
 }
 
 class _PasswordFieldPresetState extends State<_PasswordFieldPreset> {
-  bool _obscure = true;
+  late final ValueNotifier<bool> _obscureNotifier;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscureNotifier = ValueNotifier(true);
+  }
+
+  @override
+  void dispose() {
+    _obscureNotifier.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: widget.controller,
-      obscureText: _obscure,
-      onChanged: widget.onChanged,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        hintText: widget.hint,
-        errorText: widget.errorText,
-        border: const OutlineInputBorder(),
-        suffixIcon: IconButton(
-          tooltip: _obscure ? 'Show password' : 'Hide password',
-          onPressed: () => setState(() => _obscure = !_obscure),
-          icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-        ),
-      ),
+    return ValueListenableBuilder(
+      valueListenable: _obscureNotifier,
+      builder: (context, obscure, _) {
+        return TextField(
+          controller: widget.controller,
+          obscureText: obscure,
+          onChanged: widget.onChanged,
+          decoration: InputDecoration(
+            labelText: widget.label,
+            hintText: widget.hint,
+            errorText: widget.errorText,
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              tooltip: obscure ? 'Show password' : 'Hide password',
+              onPressed: () => _obscureNotifier.value = !obscure,
+              icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+            ),
+          ),
+        );
+      },
     );
   }
 }

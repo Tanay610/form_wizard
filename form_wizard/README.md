@@ -16,7 +16,7 @@ and the Flutter guide for
 [![pub package](https://img.shields.io/pub/v/form_wizard.svg)](https://pub.dev/packages/form_wizard)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Open-blue)](https://github.com/Tanay610/form_wizard)
 
-> A customizable, lightweight, and high-performance form builder for Flutter.
+> The most performant, customizable, lightweight, and powerful form builder for Flutter.
 
 ## ✨ Demo
 

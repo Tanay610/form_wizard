@@ -1,6 +1,6 @@
 name: form_wizard
 description: >
-  The smartest, most customizable, and lightweight form validation and builder package for Flutter.
+  The most performant, customizable, and lightweight form validation and builder package for Flutter.
 repository: https://github.com/Tanay610/form_wizard
 topics:
   - form
@@ -11,8 +11,8 @@ topics:
 version: 0.0.2
 
 environment:
-  sdk: ^3.7.2
-  flutter: ">=1.17.0"
+  sdk: ^3.7.0
+  flutter: ">=3.22.0" 
 
 dependencies:
   flutter:

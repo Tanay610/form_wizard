@@ -148,19 +148,28 @@ class _FormWizardStepperView extends ConsumerStatefulWidget {
 
 class _FormWizardStepperViewState
     extends ConsumerState<_FormWizardStepperView> {
-  int _currentStep = 0;
+  late final ValueNotifier<int> _currentStepNotifier;
+  late final List<String> _allFieldNames;
+  late final List<List<String>> _stepFieldNames;
 
-  List<FormWizardFieldModel> get _allFields => [
-    for (final step in widget.steps) ...step.fields,
-  ];
 
-  List<FormWizardFieldModel> get _currentFields =>
-      widget.steps[_currentStep].fields;
 
   @override
   void initState() {
     super.initState();
+    _currentStepNotifier = ValueNotifier(0);
+    _stepFieldNames = widget.steps.map((step) {
+      return step.fields.map((f) => f.name).toList();
+    }).toList();
+    _allFieldNames = _stepFieldNames.expand((e) => e).toList();
     WidgetsBinding.instance.addPostFrameCallback((_) => _attachController());
+  }
+
+
+  @override
+  void dispose() {
+    _currentStepNotifier.dispose();
+    super.dispose();
   }
 
   @override
@@ -173,125 +182,173 @@ class _FormWizardStepperViewState
   }
 
   void _attachController() {
-    if (!mounted) return;
+     if (!mounted) return;
     widget.controller
       ..attach(ref.read(formStateProvider.notifier))
-      ..configureFields(_allFields)
+      ..configureFields(_allFieldNames.map((name) {
+        // Find the actual field model for each name
+        for (final step in widget.steps) {
+          for (final field in step.fields) {
+            if (field.name == name) return field;
+          }
+        }
+        throw Exception('Field $name not found');
+      }).toList())
       ..sync(ref.read(formStateProvider));
   }
 
-  bool _watchCurrentStepValidity(WidgetRef ref) {
-    final values = <String, dynamic>{};
-    for (final field in _currentFields) {
-      values[field.name] = ref.watch(
-        formStateProvider.select((state) => state.values[field.name]),
-      );
-      for (final dependency in field.visibleWhenDependsOn) {
-        values[dependency] = ref.watch(
-          formStateProvider.select((state) => state.values[dependency]),
-        );
+  /// Watches validity of current step with fine-grained selectivity
+  bool _isCurrentStepValid(int currentStep) {
+    final stepFields = _stepFieldNames[currentStep];
+    if (stepFields.isEmpty) return true;
+
+    // Watch all field values and errors in this step
+    final values = ref.watch(formStateProvider.select((state) {
+      final result = <String, dynamic>{};
+      for (final name in stepFields) {
+        result[name] = state.values[name];
+      }
+      return result;
+    }));
+
+    final errors = ref.watch(formStateProvider.select((state) {
+      final result = <String, String?>{};
+      for (final name in stepFields) {
+        final error = state.errors[name];
+        if (error != null) result[name] = error;
+      }
+      return result;
+    }));
+
+    // Check each field for validation
+    for (final name in stepFields) {
+      // Has error?
+      if (errors[name] != null && errors[name]!.isNotEmpty) return false;
+      // Required but empty?
+      final field = _findFieldByName(name);
+      if (field != null) {
+
+        final value = values[name];
+        if (value == null || value.toString().isEmpty) return false;
       }
     }
-
-    for (final field in _currentFields) {
-      final isVisible = field.visibleWhen?.call(values) ?? true;
-      if (!isVisible) continue;
-
-      final value = values[field.name]?.toString();
-      for (final validator in field.validators ?? const []) {
-        if (validator(value) != null) return false;
-      }
-    }
-
     return true;
   }
 
+  FormWizardFieldModel? _findFieldByName(String name) {
+    for (final step in widget.steps) {
+      for (final field in step.fields) {
+        if (field.name == name) return field;
+      }
+    }
+    return null;
+  }
+
+  
   void _setStep(int nextStep) {
     if (nextStep < 0 || nextStep >= widget.steps.length) return;
-    setState(() => _currentStep = nextStep);
+    _currentStepNotifier.value = nextStep;
     widget.onStepChanged?.call(nextStep);
   }
 
+
+ 
   void _next() {
     final notifier = ref.read(formStateProvider.notifier);
-    var valid = true;
-    for (final field in _currentFields) {
-      valid = notifier.validateField(field.name) && valid;
-    }
-    if (!valid) return;
+    final currentStep = _currentStepNotifier.value;
+    final stepFields = _stepFieldNames[currentStep];
 
-    if (_currentStep == widget.steps.length - 1) {
+    // Validate all fields in current step
+    var isValid = true;
+    for (final fieldName in stepFields) {
+      final validated = notifier.validateField(fieldName);
+      if (!validated) isValid = false;
+    }
+
+    if (!isValid) return;
+
+    if (currentStep == widget.steps.length - 1) {
       widget.onFinish(widget.controller.formData);
     } else {
-      _setStep(_currentStep + 1);
+      _setStep(currentStep + 1);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+     // Sync controller on form changes
     ref.listen(formStateProvider, (_, next) => widget.controller.sync(next));
+    return ValueListenableBuilder(
+      valueListenable: _currentStepNotifier,
+      builder: (context, currentStep, _) {
+                final currentFields = widget.steps[currentStep].fields;
+        final isCurrentStepValid = _isCurrentStepValid(currentStep);
+        final isLastStep = currentStep == widget.steps.length - 1;
+        final isFirstStep = currentStep == 0;
 
-    final fields = _StepperFieldsList(
-      fields: _currentFields,
-      controller: widget.controller,
-    );
-
-    if (widget.stepBuilder != null) {
-      final isCurrentStepValid = _watchCurrentStepValidity(ref);
-      final stepperContext = FormWizardStepperContext(
-        currentStep: _currentStep,
-        steps: widget.steps,
-        isCurrentStepValid: isCurrentStepValid,
-        onNext: isCurrentStepValid ? _next : null,
-        onBack: _currentStep == 0 ? null : () => _setStep(_currentStep - 1),
-        onStepTapped: _setStep,
-        fields: fields,
-      );
-      return widget.stepBuilder!(context, stepperContext);
-    }
-
-    return Stepper(
-      currentStep: _currentStep,
-      onStepTapped: _setStep,
-      onStepContinue: _next,
-      onStepCancel: _currentStep == 0 ? null : () => _setStep(_currentStep - 1),
-      controlsBuilder: (context, details) {
-        return _StepperControls(
-          watchIsValid: _watchCurrentStepValidity,
-          isLastStep: _currentStep == widget.steps.length - 1,
-          isFirstStep: _currentStep == 0,
-          nextLabel: widget.nextLabel,
-          backLabel: widget.backLabel,
-          finishLabel: widget.finishLabel,
-          onNext: _next,
-          onBack: () => _setStep(_currentStep - 1),
+          final fieldsWidget = _StepperFieldsList(
+          fields: currentFields,
+          controller: widget.controller,
         );
-      },
-      steps: [
-        for (var index = 0; index < widget.steps.length; index++)
-          Step(
-            title: Text(widget.steps[index].title),
-            subtitle:
-                widget.steps[index].subtitle == null
-                    ? null
-                    : Text(widget.steps[index].subtitle!),
-            isActive: index <= _currentStep,
-            state:
-                index < _currentStep
-                    ? StepState.complete
-                    : index == _currentStep
-                    ? StepState.editing
-                    : StepState.indexed,
-            content: index == _currentStep ? fields : const SizedBox.shrink(),
-          ),
-      ],
+
+           // ✅ SUPPORT CUSTOM STEP BUILDER
+        if (widget.stepBuilder != null) {
+          final stepperContext = FormWizardStepperContext(
+            currentStep: currentStep,
+            steps: widget.steps,
+            isCurrentStepValid: isCurrentStepValid,
+            onNext: isCurrentStepValid ? _next : null,
+            onBack: isFirstStep ? null : () => _setStep(currentStep - 1),
+            onStepTapped: _setStep,
+            fields: fieldsWidget,
+          );
+          return widget.stepBuilder!(context, stepperContext);
+        }
+
+        return Stepper(
+          currentStep: currentStep,
+          onStepTapped: _setStep,
+          onStepContinue: isCurrentStepValid ? _next : null,
+          onStepCancel: isFirstStep ? null : () => _setStep(currentStep - 1),
+          controlsBuilder: (context, details) {
+            return _StepperControls(
+              isValid: isCurrentStepValid,
+              isLastStep:  isLastStep,
+              isFirstStep: isFirstStep,
+              nextLabel: widget.nextLabel,
+              backLabel: widget.backLabel,
+              finishLabel: widget.finishLabel,
+              onNext: _next,
+              onBack: () => _setStep(currentStep - 1),
+            );
+          },
+          steps: [
+            for (var index = 0; index < widget.steps.length; index++)
+              Step(
+                title: Text(widget.steps[index].title),
+                subtitle:
+                    widget.steps[index].subtitle == null
+                        ? null
+                        : Text(widget.steps[index].subtitle!),
+                isActive: index <= currentStep,
+                state:
+                    index < currentStep
+                        ? StepState.complete
+                        : index ==currentStep
+                        ? StepState.editing
+                        : StepState.indexed,
+                content: index == currentStep ? fieldsWidget : const SizedBox.shrink(),
+              ),
+          ],
+        );
+      }
     );
   }
 }
 
 class _StepperControls extends ConsumerWidget {
   const _StepperControls({
-    required this.watchIsValid,
+    required this.isValid,
     required this.isLastStep,
     required this.isFirstStep,
     required this.nextLabel,
@@ -301,7 +358,7 @@ class _StepperControls extends ConsumerWidget {
     required this.onBack,
   });
 
-  final bool Function(WidgetRef ref) watchIsValid;
+  final bool isValid;
   final bool isLastStep;
   final bool isFirstStep;
   final String nextLabel;
@@ -312,7 +369,6 @@ class _StepperControls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isValid = watchIsValid(ref);
 
     return Padding(
       padding: const EdgeInsets.only(top: 16),

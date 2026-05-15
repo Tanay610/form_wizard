@@ -35,9 +35,13 @@ class _FormWizardFieldState extends ConsumerState<FormWizardField> {
   @override
   void didUpdateWidget(covariant FormWizardField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // ✅ Only update if the field name or initial value changed
     if (oldWidget.model.name != widget.model.name ||
         oldWidget.model.initialValue != widget.model.initialValue) {
-      _textController.text = widget.model.initialValue ?? '';
+      final newValue = widget.model.initialValue ?? '';
+      if (_textController.text != newValue) {
+        _textController.text = newValue;
+      }
     }
   }
 
@@ -47,31 +51,32 @@ class _FormWizardFieldState extends ConsumerState<FormWizardField> {
     super.dispose();
   }
 
-  void _syncController(dynamic value) {
-    final nextText = value?.toString() ?? '';
-    if (_textController.text == nextText) return;
-
-    _textController.value = _textController.value.copyWith(
-      text: nextText,
-      selection: TextSelection.collapsed(offset: nextText.length),
-      composing: TextRange.empty,
-    );
-  }
+  // ✅ REMOVED _syncController — not needed anymore
+  // Value is synced via the watcher + controller update pattern
 
   void _onChanged(String value) {
-    setState(() {});
     ref.read(formStateProvider.notifier).updateFieldValue(model.name, value);
   }
 
   @override
   Widget build(BuildContext context) {
-    final value = ref.watch(
+    // ✅ Watch only this field's value
+    final formValue = ref.watch(
       formStateProvider.select((state) => state.values[model.name]),
     );
     final errorText = ref.watch(
       formStateProvider.select((state) => state.errors[model.name]),
     );
-    _syncController(value);
+
+    // ✅ Sync controller only when formValue actually changes
+    final newText = formValue?.toString() ?? '';
+    if (_textController.text != newText) {
+      _textController.value = _textController.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+        composing: TextRange.empty,
+      );
+    }
 
     if (model.type == FieldType.custom && model.customBuilder != null) {
       return model.customBuilder!(_textController, errorText, _onChanged);
@@ -79,8 +84,7 @@ class _FormWizardFieldState extends ConsumerState<FormWizardField> {
 
     if (model.type == FieldType.dropdown && model.options != null) {
       return DropdownButtonFormField<String>(
-        initialValue:
-            _textController.text.isNotEmpty ? _textController.text : null,
+        value: _textController.text.isNotEmpty ? _textController.text : null,
         items: [
           for (final option in model.options!)
             DropdownMenuItem<String>(value: option, child: Text(option)),
