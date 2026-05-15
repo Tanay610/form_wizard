@@ -1,5 +1,9 @@
-## 0.1.0
+## 0.1.1
 
+- 🧙‍♂️ Added wizard icon to README
+- Minor documentation improvements
+
+## 0.1.0
 ### ✨ New Features
 - **FormWizardStepper**: Multi-step forms with step isolation
 - **Conditional Visibility**: Show/hide fields reactively
