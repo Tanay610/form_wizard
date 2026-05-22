@@ -13,7 +13,37 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'FormWizard Demo',
       theme: ThemeData(primarySwatch: Colors.teal),
-      home: const ExampleFormPage(),
+      home: const DemoShell(),
+    );
+  }
+}
+
+class DemoShell extends StatelessWidget {
+  const DemoShell({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('FormWizard Demo'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Form'),
+              Tab(text: 'Stepper'),
+              Tab(text: 'Templates'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            ExampleFormPage(),
+            FormStepperWidget(),
+            TemplatesShowcase(),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -33,7 +63,7 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
 
     FormWizardFieldPresets.emailField(label: 'Email Address', required: true),
     FormWizardFieldPresets.passwordField(label: 'Password', required: true),
-   FormWizardFieldPresets.countryDropdown(
+    FormWizardFieldPresets.countryDropdown(
       label: 'Country',
       required: true,
       countries: const [
@@ -150,55 +180,50 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('FormWizard Demo')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: FormWizard(
-            fields: _fields,
-            fieldArrays: [
-              FormWizardFieldArrayModel(
-                name: 'phones',
-                label: 'Phone Numbers',
-                initialItemCount: 1,
-                minItems: 1,
-                maxItems: 4,
-                fieldBuilder: (item) {
-                  return [
-                    FormWizardFieldModel(
-                      name: item.fieldName('number'),
-                      label: 'Phone ${item.index + 1}',
-                      type: FieldType.number,
-                      validators: [Validators.required(), Validators.number()],
-                      decorationBuilder:
-                          (errorText, controller) => InputDecoration(
-                            prefixIcon: const Icon(Icons.phone),
-                            labelText: 'Phone ${item.index + 1}',
-                            errorText: errorText,
-                            border: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(12),
-                              ),
-                            ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: FormWizard(
+          fields: _fields,
+          fieldArrays: [
+            FormWizardFieldArrayModel(
+              name: 'phones',
+              label: 'Phone Numbers',
+              initialItemCount: 1,
+              minItems: 1,
+              maxItems: 4,
+              fieldBuilder: (item) {
+                return [
+                  FormWizardFieldModel(
+                    name: item.fieldName('number'),
+                    label: 'Phone ${item.index + 1}',
+                    type: FieldType.number,
+                    validators: [Validators.required(), Validators.number()],
+                    decorationBuilder:
+                        (errorText, controller) => InputDecoration(
+                          prefixIcon: const Icon(Icons.phone),
+                          labelText: 'Phone ${item.index + 1}',
+                          errorText: errorText,
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
-                    ),
-                  ];
-                },
-              ),
-            ],
-            controller: _controller,
-            onSubmit: (values) {
-              showDialog(
-                context: context,
-                builder:
-                    (_) => AlertDialog(
-                      title: const Text('Form Submitted'),
-                      content: Text(values.toString()),
-                    ),
-              );
-            },
-          ),
+                        ),
+                  ),
+                ];
+              },
+            ),
+          ],
+          controller: _controller,
+          onSubmit: (values) {
+            showDialog(
+              context: context,
+              builder:
+                  (_) => AlertDialog(
+                    title: const Text('Form Submitted'),
+                    content: Text(values.toString()),
+                  ),
+            );
+          },
         ),
       ),
     );
@@ -210,8 +235,8 @@ class LoginFormTemplate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  LoginForm(
-      onLogin: (name,password){
+    return LoginForm(
+      onLogin: (name, password) {
         showDialog(
           context: context,
           builder:
@@ -220,40 +245,71 @@ class LoginFormTemplate extends StatelessWidget {
                 content: Text('Identity: $name\nPassword: $password'),
               ),
         );
-    });
+      },
+    );
   }
 }
 
-
 class FormStepperWidget extends StatelessWidget {
-   FormStepperWidget({super.key});
-
-   Map<String, dynamic>? finished;
-    var changedStep = 0;
+  const FormStepperWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return  MaterialApp(
-        home: Scaffold(
-          body: FormWizardStepper(
-            steps: [
-              FormWizardStep(
-                title: 'Personal',
-                fields: [FormWizard.nameField(name: 'name')],
-              ),
-              FormWizardStep(
-                title: 'Contact',
-                fields: [FormWizard.emailField(name: 'email')],
-              ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: FormWizardStepper(
+        steps: [
+          FormWizardStep(
+            title: 'Personal',
+            fields: [FormWizard.nameField(name: 'name')],
+          ),
+          FormWizardStep(
+            title: 'Contact',
+            fields: [FormWizard.emailField(name: 'email')],
+          ),
+          FormWizardStep(
+            title: 'Address',
+            fields: [
+              FormWizard.streetField(),
+              FormWizard.cityField(),
+              FormWizard.zipField(),
             ],
-            onStepChanged: (step) => changedStep = step,
-            onFinish: (values) => finished = values,
-            stepBuilder: (context, stepper) {
-              return Column(
+          ),
+        ],
+        onStepChanged: (_) {},
+        onFinish: (values) {
+          showDialog(
+            context: context,
+            builder:
+                (_) => AlertDialog(
+                  title: const Text('Stepper Submitted'),
+                  content: Text(values.toString()),
+                ),
+          );
+        },
+        stepBuilder: (context, stepper) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              LinearProgressIndicator(
+                value: (stepper.currentStep + 1) / stepper.steps.length,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                stepper.steps[stepper.currentStep].title,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 12),
+              stepper.fields,
+              const SizedBox(height: 16),
+              Row(
                 children: [
-                  Text(stepper.steps[stepper.currentStep].title),
-                  stepper.fields,
-                  ElevatedButton(
+                  TextButton(
+                    onPressed: stepper.onBack,
+                    child: const Text('Back'),
+                  ),
+                  const Spacer(),
+                  FilledButton(
                     key: const ValueKey<String>('next-step'),
                     onPressed: stepper.onNext,
                     child: Text(
@@ -263,10 +319,93 @@ class FormStepperWidget extends StatelessWidget {
                     ),
                   ),
                 ],
-              );
-            },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class TemplatesShowcase extends StatelessWidget {
+  const TemplatesShowcase({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _TemplatePanel(
+          title: 'LoginForm',
+          child: LoginForm(
+            rememberMe: true,
+            forgotPasswordLink: () => _show(context, 'Forgot password tapped'),
+            onLogin:
+                (identity, password) =>
+                    _show(context, 'Login: $identity / $password'),
           ),
         ),
-      );
+        _TemplatePanel(
+          title: 'SignupForm',
+          child: SignupForm(
+            requireTermsAcceptance: true,
+            onSignup:
+                (name, identity, password) =>
+                    _show(context, 'Signup: $name / $identity'),
+          ),
+        ),
+        _TemplatePanel(
+          title: 'OTPVerificationForm',
+          child: OTPVerificationForm(
+            otpLength: 4,
+            resendCooldownSeconds: 10,
+            onVerify: (otp) => _show(context, 'OTP: $otp'),
+            onResend: () => _show(context, 'OTP resent'),
+          ),
+        ),
+        _TemplatePanel(
+          title: 'AddressForm',
+          child: AddressForm(
+            onSubmit: (address) => _show(context, address.toString()),
+          ),
+        ),
+        _TemplatePanel(
+          title: 'PaymentForm',
+          child: PaymentForm(
+            submitLabel: 'Pay Now',
+            onSubmit: (payment) => _show(context, payment.toString()),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static void _show(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Template Submitted'),
+            content: Text(message),
+          ),
+    );
+  }
+}
+
+class _TemplatePanel extends StatelessWidget {
+  const _TemplatePanel({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      title: Text(title),
+      children: [
+        Padding(padding: const EdgeInsets.only(bottom: 16), child: child),
+      ],
+    );
   }
 }

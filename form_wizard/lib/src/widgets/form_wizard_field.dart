@@ -35,7 +35,6 @@ class _FormWizardFieldState extends ConsumerState<FormWizardField> {
   @override
   void didUpdateWidget(covariant FormWizardField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // ✅ Only update if the field name or initial value changed
     if (oldWidget.model.name != widget.model.name ||
         oldWidget.model.initialValue != widget.model.initialValue) {
       final newValue = widget.model.initialValue ?? '';
@@ -51,16 +50,12 @@ class _FormWizardFieldState extends ConsumerState<FormWizardField> {
     super.dispose();
   }
 
-  // ✅ REMOVED _syncController — not needed anymore
-  // Value is synced via the watcher + controller update pattern
-
   void _onChanged(String value) {
     ref.read(formStateProvider.notifier).updateFieldValue(model.name, value);
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Watch only this field's value
     final formValue = ref.watch(
       formStateProvider.select((state) => state.values[model.name]),
     );
@@ -68,7 +63,6 @@ class _FormWizardFieldState extends ConsumerState<FormWizardField> {
       formStateProvider.select((state) => state.errors[model.name]),
     );
 
-    // ✅ Sync controller only when formValue actually changes
     final newText = formValue?.toString() ?? '';
     if (_textController.text != newText) {
       _textController.value = _textController.value.copyWith(
@@ -84,7 +78,8 @@ class _FormWizardFieldState extends ConsumerState<FormWizardField> {
 
     if (model.type == FieldType.dropdown && model.options != null) {
       return DropdownButtonFormField<String>(
-        value: _textController.text.isNotEmpty ? _textController.text : null,
+        initialValue:
+            _textController.text.isNotEmpty ? _textController.text : null,
         items: [
           for (final option in model.options!)
             DropdownMenuItem<String>(value: option, child: Text(option)),

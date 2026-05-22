@@ -12,13 +12,12 @@ import 'form_wizard_field.dart';
 ///
 /// Consumers do not need to add Riverpod to their app or wrap their widget tree
 /// with [ProviderScope]. Each [FormWizard] owns an internal provider scope.
-class FormWizard extends StatelessWidget {
+class FormWizard extends StatefulWidget {
   final List<FormWizardFieldModel> fields;
   final List<FormWizardFieldArrayModel> fieldArrays;
   final FormWizardController controller;
   final void Function(Map<String, dynamic> values)? onSubmit;
   final Widget? submitButton;
-
 
   const FormWizard({
     super.key,
@@ -150,14 +149,24 @@ class FormWizard extends StatelessWidget {
   );
 
   @override
+  State<FormWizard> createState() => _FormWizardRootState();
+}
+
+class _FormWizardRootState extends State<FormWizard>
+    with AutomaticKeepAliveClientMixin<FormWizard> {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return ProviderScope(
       child: _FormWizardView(
-        fields: fields,
-        fieldArrays: fieldArrays,
-        controller: controller,
-        onSubmit: onSubmit,
-        submitButton: submitButton,
+        fields: widget.fields,
+        fieldArrays: widget.fieldArrays,
+        controller: widget.controller,
+        onSubmit: widget.onSubmit,
+        submitButton: widget.submitButton,
       ),
     );
   }
@@ -303,12 +312,6 @@ class _FormField extends ConsumerWidget {
           Map<String, dynamic>.unmodifiable(valuesForPredicate),
         ) ??
         true;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(formStateProvider.notifier)
-          .setFieldVisibility(field.name, isVisible);
-    });
 
     if (!isVisible) {
       return const SizedBox.shrink();
@@ -508,9 +511,7 @@ class _ArrayIconButton extends StatelessWidget {
 }
 
 class _SubmitButton extends ConsumerWidget {
-  const _SubmitButton({required this.controller, 
-  required this.onSubmit
-  });
+  const _SubmitButton({required this.controller, required this.onSubmit});
 
   final FormWizardController controller;
   final void Function(Map<String, dynamic> values)? onSubmit;
@@ -521,7 +522,7 @@ class _SubmitButton extends ConsumerWidget {
 
     return ElevatedButton(
       onPressed: isFormValid ? () => controller.submitForm(onSubmit) : null,
-      child:  Text('Submit'),
+      child: Text('Submit'),
     );
   }
 }

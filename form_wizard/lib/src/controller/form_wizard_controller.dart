@@ -71,10 +71,21 @@ class FormWizardController {
           field.validators ?? const <Validator>[],
         ),
     };
+    final visibilityPredicates = <String, FormWizardVisibilityPredicate>{
+      for (final field in fields)
+        if (field.visibleWhen != null) field.name: field.visibleWhen!,
+    };
+    final visibilityDependencies = <String, List<String>>{
+      for (final field in fields)
+        if (field.visibleWhenDependsOn.isNotEmpty)
+          field.name: List<String>.unmodifiable(field.visibleWhenDependsOn),
+    };
 
     _notifier?.configure(
       initialValues: initialValues,
       validators: validators,
+      visibilityPredicates: visibilityPredicates,
+      visibilityDependencies: visibilityDependencies,
       initialFieldArrayCounts: {
         for (final fieldArray in fieldArrays)
           fieldArray.name: fieldArray.initialItemCount,

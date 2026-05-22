@@ -358,4 +358,62 @@ void main() {
     expect(identity, 'hello@example.com');
     expect(password, 'password123');
   });
+
+  testWidgets('tab switching does not update disposed provider scopes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: const TabBar(
+              tabs: [Tab(text: 'Form'), Tab(text: 'Stepper')],
+            ),
+            body: TabBarView(
+              children: [
+                FormWizard(
+                  controller: FormWizardController(),
+                  fields: [
+                    FormWizard.countryDropdown(
+                      countries: const ['India', 'United States'],
+                    ),
+                    FormWizardFieldModel(
+                      name: 'state',
+                      label: 'State',
+                      type: FieldType.text,
+                      visibleWhenDependsOn: const ['country'],
+                      visibleWhen:
+                          (values) => values['country'] == 'United States',
+                    ),
+                  ],
+                ),
+                FormWizardStepper(
+                  steps: [
+                    FormWizardStep(
+                      title: 'Personal',
+                      fields: [FormWizard.nameField()],
+                    ),
+                    FormWizardStep(
+                      title: 'Contact',
+                      fields: [FormWizard.emailField()],
+                    ),
+                  ],
+                  onFinish: (_) {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.text('Stepper'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Form'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
 }

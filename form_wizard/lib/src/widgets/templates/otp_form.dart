@@ -31,22 +31,6 @@ class OTPVerificationForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remainingNotifier = ValueNotifier<int>(0);
-    Timer? timer;
-
-    void startCooldown() {
-      timer?.cancel();
-      remainingNotifier.value = resendCooldownSeconds;
-      timer = Timer.periodic(const Duration(seconds: 1), (activeTimer) {
-        if (remainingNotifier.value <= 1) {
-          activeTimer.cancel();
-          remainingNotifier.value = 0;
-        } else {
-          remainingNotifier.value--;
-        }
-      });
-    }
-
     return FormWizard(
       controller: controller,
       fields: [
@@ -60,33 +44,82 @@ class OTPVerificationForm extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ElevatedButton(
-            onPressed: () => controller.submitForm(
-              (values) => onVerify(values['otp']?.toString() ?? ''),
-            ),
+            onPressed:
+                () => controller.submitForm(
+                  (values) => onVerify(values['otp']?.toString() ?? ''),
+                ),
             child: Text(verifyLabel),
           ),
           if (onResend != null)
-            ValueListenableBuilder(
-              valueListenable: remainingNotifier,
-              builder: (context, remaining, _) {
-                return TextButton(
-                  onPressed: remaining == 0
-                      ? () {
-                          onResend!();
-                          startCooldown();
-                        }
-                      : null,
-                  child: Text(
-                    remaining == 0
-                        ? resendLabel
-                        : '$resendLabel ($remaining)',
-                  ),
-                );
-              },
+            _OtpResendButton(
+              label: resendLabel,
+              cooldownSeconds: resendCooldownSeconds,
+              onResend: onResend!,
             ),
         ],
       ),
       onSubmit: (_) {},
+    );
+  }
+}
+
+class _OtpResendButton extends StatefulWidget {
+  const _OtpResendButton({
+    required this.label,
+    required this.cooldownSeconds,
+    required this.onResend,
+  });
+
+  final String label;
+  final int cooldownSeconds;
+  final VoidCallback onResend;
+
+  @override
+  State<_OtpResendButton> createState() => _OtpResendButtonState();
+}
+
+class _OtpResendButtonState extends State<_OtpResendButton> {
+  final ValueNotifier<int> _remaining = ValueNotifier<int>(0);
+  Timer? _timer;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _remaining.dispose();
+    super.dispose();
+  }
+
+  void _startCooldown() {
+    _timer?.cancel();
+    _remaining.value = widget.cooldownSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remaining.value <= 1) {
+        timer.cancel();
+        _remaining.value = 0;
+      } else {
+        _remaining.value--;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: _remaining,
+      builder: (context, remaining, _) {
+        return TextButton(
+          onPressed:
+              remaining == 0
+                  ? () {
+                    widget.onResend();
+                    _startCooldown();
+                  }
+                  : null,
+          child: Text(
+            remaining == 0 ? widget.label : '${widget.label} ($remaining)',
+          ),
+        );
+      },
     );
   }
 }

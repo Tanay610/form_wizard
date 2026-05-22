@@ -49,6 +49,18 @@ class FormState {
     return copyWith(values: <String, dynamic>{...values, fieldName: value});
   }
 
+  /// Returns a copy with one field value and error updated together.
+  FormState setFieldValueAndError(
+    String fieldName,
+    dynamic value,
+    String? error,
+  ) {
+    return copyWith(
+      values: <String, dynamic>{...values, fieldName: value},
+      errors: <String, String?>{...errors, fieldName: error},
+    );
+  }
+
   /// Returns a copy with a single field error updated.
   FormState setFieldError(String fieldName, String? error) {
     return copyWith(errors: <String, String?>{...errors, fieldName: error});

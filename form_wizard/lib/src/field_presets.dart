@@ -196,7 +196,6 @@ class FormWizardFieldPresets {
   }
 }
 
-
 class _PasswordFieldPreset extends StatefulWidget {
   const _PasswordFieldPreset({
     required this.controller,

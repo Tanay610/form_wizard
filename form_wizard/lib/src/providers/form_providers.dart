@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/form_state.dart';
+import '../models/form_wizard_field_model.dart';
 import '../validators/validators.dart';
 
 /// Owns the immutable state for a form and exposes mutation APIs.
@@ -9,16 +11,35 @@ class FormStateNotifier extends Notifier<FormState> {
   FormState build() => const FormState();
 
   final Map<String, List<Validator>> _validators = <String, List<Validator>>{};
+  final Map<String, FormWizardVisibilityPredicate> _visibilityPredicates =
+      <String, FormWizardVisibilityPredicate>{};
+  final Map<String, List<String>> _visibilityDependencies =
+      <String, List<String>>{};
+  final Map<String, List<String>> _visibilityDependents =
+      <String, List<String>>{};
 
   /// Registers initial values and validators for the active field list.
   void configure({
     required Map<String, dynamic> initialValues,
     required Map<String, List<Validator>> validators,
+    Map<String, FormWizardVisibilityPredicate> visibilityPredicates =
+        const <String, FormWizardVisibilityPredicate>{},
+    Map<String, List<String>> visibilityDependencies =
+        const <String, List<String>>{},
     Map<String, int> initialFieldArrayCounts = const <String, int>{},
   }) {
     _validators
       ..clear()
       ..addAll(validators);
+    _visibilityPredicates
+      ..clear()
+      ..addAll(visibilityPredicates);
+    _visibilityDependencies
+      ..clear()
+      ..addAll(visibilityDependencies);
+    _visibilityDependents
+      ..clear()
+      ..addAll(_reverseDependencies(visibilityDependencies));
 
     final nextValues = <String, dynamic>{
       for (final entry in initialValues.entries)
@@ -32,7 +53,7 @@ class FormStateNotifier extends Notifier<FormState> {
 
     final nextVisibleFields = <String, bool>{
       for (final fieldName in initialValues.keys)
-        fieldName: state.visibleFields[fieldName] ?? true,
+        fieldName: _isFieldVisible(fieldName, nextValues),
     };
     final nextFieldArrays = <String, List<String>>{...state.fieldArrays};
     var nextArrayItemId = state.nextArrayItemId;
@@ -45,23 +66,51 @@ class FormStateNotifier extends Notifier<FormState> {
       });
     }
 
-    state = FormState(
+    final nextState = FormState(
       values: nextValues,
       errors: nextErrors,
       visibleFields: nextVisibleFields,
       fieldArrays: Map<String, List<String>>.unmodifiable(nextFieldArrays),
       nextArrayItemId: nextArrayItemId,
     );
+
+    if (_stateEquals(state, nextState)) return;
+    state = nextState;
   }
 
   /// Updates one field and revalidates only that field.
   void updateFieldValue(String fieldName, dynamic value) {
-    state = state.setFieldValue(fieldName, value);
-    validateField(fieldName);
+    final nextValues = <String, dynamic>{...state.values, fieldName: value};
+    final nextVisibleFields = <String, bool>{...state.visibleFields};
+    final nextErrors = <String, String?>{...state.errors};
+    final affectedFields = _affectedFieldsFor(fieldName)..add(fieldName);
+
+    for (final affectedField in affectedFields) {
+      final isVisible = _isFieldVisible(affectedField, nextValues);
+      nextVisibleFields[affectedField] = isVisible;
+
+      if (!isVisible) {
+        nextErrors[affectedField] = null;
+      } else if (affectedField == fieldName ||
+          state.errors[affectedField] != null) {
+        nextErrors[affectedField] = _errorForFieldWithValues(
+          affectedField,
+          nextValues[affectedField],
+          nextValues,
+        );
+      }
+    }
+
+    state = state.copyWith(
+      values: nextValues,
+      errors: nextErrors,
+      visibleFields: nextVisibleFields,
+    );
   }
 
   /// Sets an error for a field.
   void setFieldError(String fieldName, String? error) {
+    if (state.errors[fieldName] == error) return;
     state = state.setFieldError(fieldName, error);
   }
 
@@ -78,24 +127,54 @@ class FormStateNotifier extends Notifier<FormState> {
 
   /// Validates one field using the validators registered for [fieldName].
   bool validateField(String fieldName) {
-    if (state.visibleFields[fieldName] == false) {
-      setFieldError(fieldName, null);
-      return true;
-    }
+    final error = _errorForField(fieldName, state.values[fieldName]);
+    setFieldError(fieldName, error);
+    return error == null;
+  }
 
-    final value = state.values[fieldName]?.toString();
+  String? _errorForField(String fieldName, dynamic rawValue) {
+    return _errorForFieldWithValues(fieldName, rawValue, state.values);
+  }
+
+  String? _errorForFieldWithValues(
+    String fieldName,
+    dynamic rawValue,
+    Map<String, dynamic> values,
+  ) {
+    if (!_isFieldVisible(fieldName, values)) return null;
+
+    final value = rawValue?.toString();
     final validators = _validators[fieldName] ?? const <Validator>[];
 
     for (final validator in validators) {
       final result = validator(value);
       if (result != null) {
-        setFieldError(fieldName, result);
-        return false;
+        return result;
       }
     }
 
-    setFieldError(fieldName, null);
-    return true;
+    return null;
+  }
+
+  bool _isFieldVisible(String fieldName, Map<String, dynamic> values) {
+    return _visibilityPredicates[fieldName]?.call(values) ?? true;
+  }
+
+  Set<String> _affectedFieldsFor(String fieldName) {
+    final affected = <String>{};
+    final stack = <String>[fieldName];
+
+    while (stack.isNotEmpty) {
+      final current = stack.removeLast();
+      for (final dependent
+          in _visibilityDependents[current] ?? const <String>[]) {
+        if (affected.add(dependent)) {
+          stack.add(dependent);
+        }
+      }
+    }
+
+    return affected;
   }
 
   /// Validates every registered field.
@@ -179,6 +258,20 @@ class FormStateNotifier extends Notifier<FormState> {
   }
 }
 
+Map<String, List<String>> _reverseDependencies(
+  Map<String, List<String>> dependencies,
+) {
+  final reversed = <String, List<String>>{};
+
+  for (final entry in dependencies.entries) {
+    for (final dependency in entry.value) {
+      reversed.putIfAbsent(dependency, () => <String>[]).add(entry.key);
+    }
+  }
+
+  return reversed;
+}
+
 /// Global form state provider.
 ///
 /// Widgets should prefer `.select` on this provider to subscribe to one field:
@@ -187,14 +280,32 @@ final formStateProvider = NotifierProvider<FormStateNotifier, FormState>(
   FormStateNotifier.new,
 );
 
+bool _stateEquals(FormState a, FormState b) {
+  return mapEquals(a.values, b.values) &&
+      mapEquals(a.errors, b.errors) &&
+      mapEquals(a.visibleFields, b.visibleFields) &&
+      _fieldArraysEqual(a.fieldArrays, b.fieldArrays) &&
+      a.nextArrayItemId == b.nextArrayItemId;
+}
+
+bool _fieldArraysEqual(
+  Map<String, List<String>> a,
+  Map<String, List<String>> b,
+) {
+  if (a.length != b.length) return false;
+
+  for (final entry in a.entries) {
+    if (!listEquals(entry.value, b[entry.key])) return false;
+  }
+
+  return true;
+}
+
 /// Derived form validity provider.
 ///
-/// This watches only the error map, so consumers such as submit buttons avoid
-/// rebuilding for ordinary value changes that do not affect validity.
+/// This watches the derived validity boolean, so consumers such as submit
+/// buttons avoid rebuilding for ordinary value changes that do not affect
+/// validity.
 final formValidityProvider = Provider<bool>((ref) {
-  return ref.watch(
-    formStateProvider.select(
-      (state) => state.errors.values.every((error) => error == null),
-    ),
-  );
+  return ref.watch(formStateProvider.select((state) => state.isValid));
 });

@@ -1,16 +1,3 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
-
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
-
 # form_wizard <span style="font-size: 3rem;">🧙‍♂️</span>
 
 [![pub package](https://img.shields.io/pub/v/form_wizard.svg)](https://pub.dev/packages/form_wizard)
@@ -32,17 +19,20 @@ and the Flutter guide for
 
 ---
 
-## 🎉 What's New in v0.1.0
+## 🚀 What's New in v0.1.2
 
-| Feature | Description |
-|---------|-------------|
-| **Performance** | Only the field being edited rebuilds — **up to 90% fewer rebuilds**|
-| **FormWizardStepper** | Multi‑step forms with step isolation — inactive steps are disposed |
-| **Conditional Visibility** | Show/hide fields reactively with `visibleWhen` + `visibleWhenDependsOn` |
-| **Dynamic Field Arrays** | Add, remove, and reorder repeating field groups (phone numbers, addresses, etc.) |
-| **Built‑in Templates** | LoginForm, SignupForm, OTPForm, AddressForm, PaymentForm — ready to use |
-| **Field Presets** | `emailField()`, `phoneField()`, `passwordField()`, `otpField()`, `nameField()`, etc. |
+This release is a pure refinement pass focused on making `form_wizard` faster, cleaner, and more reliable under real typing load.
 
+| Upgrade | Why it matters |
+|---------|----------------|
+| **Single-emission field updates** | A field edit now updates the value and validation error together, avoiding extra provider notifications per keystroke |
+| **Hidden-field-aware validity** | Conditional fields that are hidden no longer block submit or global validity |
+| **No-op configuration guard** | Repeated setup/configuration calls avoid unnecessary state emissions |
+| **Cleaner Stepper internals** | Step validity watches only the active step's relevant fields instead of broad derived maps |
+| **Safer OTP cooldown** | OTP resend timers/notifiers are now owned and disposed correctly |
+| **Modern dropdown API** | Uses `initialValue` instead of deprecated dropdown `value` |
+
+The core promise is now stronger: **only the field being edited should react to that edit**, and even that edit is handled with the smallest practical state update.
 
 ---
 
@@ -51,6 +41,7 @@ and the Flutter guide for
 ### Core
 - Smart validation with reactive `FormWizardController`
 - Fine-grained state updates using `formStateProvider.select(...)`
+- Single-emission value + validation updates per field edit
 - `ValueListenable` access to `isFormValid`, `formValues`, and field errors
 
 ### Fields
@@ -64,7 +55,7 @@ and the Flutter guide for
 - Multi‑step forms with `FormWizardStepper`
 
 ### Templates (new)
-- LoginForm, SignupForm, OTPForm, AddressForm, PaymentForm
+- LoginForm, SignupForm, OTPVerificationForm, AddressForm, PaymentForm
 - Field presets for common use cases
 
 
@@ -84,23 +75,37 @@ ref.watch(formStateProvider.select((state) => state.values[fieldName]));
 ref.watch(formStateProvider.select((state) => state.errors[fieldName]));
 ```
 
-When a user edits `email`, only the `email` field receives the changed selected value. Sibling fields keep their existing widget subtrees, which makes large forms much cheaper to type into. Conditional fields also declare their dependencies, so a `state` field can react to `country` without every other field waking up.
+When a user edits `email`, only the `email` field receives the changed selected value. Sibling fields keep their existing widget subtrees, which makes large forms much cheaper to type into.
+
+In v0.1.2, the edited value and that field's validation error are committed in a single immutable state update. That means fewer provider notifications, fewer derived-listener checks, and less work per keystroke.
+
+Conditional fields also declare their dependencies, so a `state` field can react to `country` without every other field waking up.
 
 Global UI, such as submit buttons, can listen to the controller's `isFormValid`
 `ValueListenable`, so it rebuilds only when validity changes. Advanced users can
 also import the exported providers directly, but the normal API does not require
 Riverpod knowledge.
 
+`FormWizard` and `FormWizardStepper` are also safe inside `TabBarView`/page-style layouts; their internal provider scopes are lifecycle-hardened for tab switching.
+
+### What does not rebuild?
+
+- Other fields when one field changes
+- Inactive stepper steps
+- Hidden conditional fields
+- Submit controls unless derived validity changes
+- Field-array siblings unless their item list or their own field state changes
+
 ---
 
 ## 🧪 Usage
 
-Here’s how to use `FormWizard` in your project:
+Here’s the smallest useful `FormWizard` setup:
 
 ### 🪄 Step-by-Step
 
 1. Initialize a `FormWizardController`.
-2. Define fields with `FormWizardFieldModel`.
+2. Define fields with presets like `FormWizard.emailField()` or with `FormWizardFieldModel`.
 3. Pass the fields and controller to `FormWizard`.
 4. Handle submission with `onSubmit`.
 
@@ -112,75 +117,11 @@ final formController = FormWizardController();
 FormWizard(
   controller: formController,
   fields: [
-    FormWizardFieldModel(
-      name: 'email',
-      label: 'Email',
-      hint: 'Enter your email address',
-      type: FieldType.email,
-      validators: [
-        Validators.required(),
-        Validators.email(),
-      ],
-    ),
-    FormWizardFieldModel(
-      name: 'password',
-      label: 'Password',
-      type: FieldType.password,
-      hint: 'Enter a strong password',
-      validators: [
-        Validators.required(),
-        Validators.minLength(8),
-      ],
-    ),
-    FormWizardFieldModel(
-      name: 'dob',
-      label: 'Date of Birth',
-      type: FieldType.date,
-    ),
-    FormWizardFieldModel(
-      name: 'gender',
-      label: 'Gender',
-      type: FieldType.dropdown,
-      options: ['Male', 'Female', 'Other'],
-    ),
-    FormWizardFieldModel(
-      name: 'country',
-      label: 'Country',
-      type: FieldType.dropdown,
-      options: ['India', 'USA', 'Canada'],
-    ),
-    FormWizardFieldModel(
-      name: 'state',
-      label: 'State',
-      type: FieldType.text,
-      visibleWhenDependsOn: ['country'],
-      visibleWhen: (values) => values['country'] == 'USA',
-    ),
-  ],
-  fieldArrays: [
-    FormWizardFieldArrayModel(
-      name: 'phones',
-      label: 'Phone Numbers',
-      initialItemCount: 1,
-      minItems: 1,
-      fieldBuilder: (item) => [
-        FormWizardFieldModel(
-          name: item.fieldName('number'),
-          label: 'Phone ${item.index + 1}',
-          type: FieldType.text,
-          validators: [Validators.required()],
-        ),
-      ],
-    ),
+    FormWizard.emailField(),
+    FormWizard.passwordField(),
   ],
   onSubmit: (values) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Form Submitted'),
-        content: Text(values.toString()),
-      ),
-    );
+    print(values);
   },
 )
 ```
@@ -276,13 +217,13 @@ The default UI includes add, remove, move up, and move down controls. You can re
 Create complex, multi-step forms with zero performance penalty. Each step is isolated — typing in Step 2 does NOT rebuild Step 1.
 
 ### Features
-- Step isolation	Only the active step is in the widget tree
-- Per-step validation	Next button enables only when current step is valid
-- Data persistence	All step data preserved in global form state
-- Custom UI	Full control via stepBuilder
-- Performance	No rebuilds of inactive steps
+- **Step isolation:** only the active step is in the widget tree
+- **Per-step validation:** the next button enables only when the current step is valid
+- **Data persistence:** all step data is preserved in global form state
+- **Custom UI:** full control via `stepBuilder`
+- **Performance:** no rebuilds from inactive steps
 
-`Basic Usage`
+### Basic Usage
 
 ```dart
 FormWizardStepper(
@@ -306,7 +247,8 @@ FormWizardStepper(
 )
 ```
 
--  Custom UI with stepBuilder
+### Custom UI with `stepBuilder`
+
 Take full control of the stepper layout:
 
 ```dart
@@ -350,48 +292,48 @@ FormWizardStepper(
 )
 ```
 
+### Performance Note
 
-⚡ `Performance Note`
-Only the active step's fields are in the widget tree. When you navigate away from a step, its widgets are disposed — saving memory and preventing unnecessary rebuilds.
+Only the active step's fields are in the widget tree. When you navigate away from a step, its widgets are disposed, saving memory and preventing unnecessary rebuilds.
 
 
 ---
 
-### 📦  Built-in Form Templates
+## 📦 Built-in Form Templates
 
-Stop rewriting the same forms. Use our pre-built, fully customizable templates. Available Templates
+Stop rewriting the same forms. Use pre-built, fully customizable templates that are powered by the same optimized `FormWizard` internals.
 
 
- `LoginForm`
+### LoginForm
 ```dart
 LoginForm(
-  identityType: IdentityType.email, // or .phone, .username
+  identityType: FormWizardIdentityType.email, // or .phone, .username
   onLogin: (identity, password) async {
     await authService.login(identity, password);
   },
   forgotPasswordLink: () => navigateToForgotPassword(),
   rememberMe: true,
-  submitButtonText: 'Sign In',
+  submitLabel: 'Sign In',
 )
 ```
 
- `SignupForm`
+### SignupForm
 ```dart
 SignupForm(
-  identityType: IdentityType.email,
+  identityType: FormWizardIdentityType.email,
   requireTermsAcceptance: true,
   onSignup: (name, identity, password) async {
     await authService.register(name, identity, password);
   },
-  submitButtonText: 'Create Account',
+  submitLabel: 'Create Account',
 )
 ```
 
 
-`OTPVerificationForm`
+### OTPVerificationForm
 ```dart
 OTPVerificationForm(
-  identifier: 'user@example.com', // phone or email
+  otpLength: 6,
   resendCooldownSeconds: 30,
   onVerify: (otp) async {
     await authService.verifyOTP(otp);
@@ -402,41 +344,42 @@ OTPVerificationForm(
 )
 ```
 
- `AddressForm`
+### AddressForm
 ```dart
 AddressForm(
   onSubmit: (address) async {
     await saveAddress(address);
   },
-  includeState: true, // state dropdown depends on country
-  submitButtonText: 'Save Address',
+  includeState: true,
+  submitLabel: 'Save Address',
 )
 ```
 
-`PaymentForm`
+### PaymentForm
 ```dart
 PaymentForm(
   onSubmit: (paymentDetails) async {
     await processPayment(paymentDetails);
   },
-  submitButtonText: 'Pay Now',
+  submitLabel: 'Pay Now',
 )
 ```
 
 
 ---
 
-### 🧩 Field Presets (Composable)
+## 🧩 Field Presets (Composable)
 
 Don't want a full template? Use individual field presets to build your own forms:
 ```dart
 FormWizard(
+  controller: formController,
   fields: [
     FormWizard.nameField(),
     FormWizard.emailField(),
     FormWizard.passwordField(),
     FormWizard.phoneField(),
-    FormWizard.addressField(),
+    FormWizard.streetField(),
     FormWizard.cityField(),
     FormWizard.zipField(),
     FormWizard.countryDropdown(),
@@ -453,17 +396,27 @@ FormWizardStepper(
   steps: [
     FormWizardStep(
       title: 'Shipping',
-      fields: [AddressForm.fields()], // Reuse address fields
+      fields: [
+        FormWizard.streetField(),
+        FormWizard.cityField(),
+        FormWizard.zipField(),
+        FormWizard.countryDropdown(),
+      ],
     ),
     FormWizardStep(
       title: 'Payment',
-      fields: [PaymentForm.fields()], // Reuse payment fields
-    ),
-    FormWizardStep(
-      title: 'Review',
       fields: [
-        FormWizard.reviewField(
-          builder: (values) => OrderSummary(values),
+        FormWizardFieldModel(
+          name: 'card_number',
+          label: 'Card Number',
+          type: FieldType.number,
+          validators: [Validators.required()],
+        ),
+        FormWizardFieldModel(
+          name: 'expiry',
+          label: 'Expiry MM/YY',
+          type: FieldType.text,
+          validators: [Validators.required()],
         ),
       ],
     ),
@@ -480,12 +433,13 @@ FormWizardStepper(
 | ---------- | ---------------------------------------- |
 | `text`     | Standard text field                      |
 | `email`    | Validates email format                   |
-|  `Otp Field`| OTP Input Field                                  |
-| `password` | With obsecure text                       |
+| `password` | Obscured password input                  |
 | `number`   | Numeric input                            |
 | `date`     | Date picker with formatting              |
 | `dropdown` | Dropdown menu from a list of options     |
 | `custom`   | Pass your own widget via `customBuilder` |
+
+OTP is available as a preset with `FormWizard.otpField(length: 4)` or `FormWizard.otpField(length: 6)`.
 
 ---
 
@@ -547,6 +501,15 @@ Use the built-in `Validators` class:
 
 ```dart
 validators: [   Validators.required(),   Validators.email(),   Validators.minLength(6), Validators.maxLength(6), Validators.number(),  Validators.regex() ]
+```
+
+Common additions include:
+
+```dart
+validators: [
+  Validators.phone(),
+  Validators.exactLength(6),
+]
 ```
 
 Or define your own:
