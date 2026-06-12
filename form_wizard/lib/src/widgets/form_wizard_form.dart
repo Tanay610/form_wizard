@@ -6,6 +6,7 @@ import '../field_presets.dart';
 import '../models/form_wizard_field_array_model.dart';
 import '../models/form_wizard_field_model.dart';
 import '../providers/form_providers.dart';
+import '../validators/validators.dart';
 import 'form_wizard_field.dart';
 
 /// High-performance form builder powered by internal Riverpod selectors.
@@ -34,11 +35,23 @@ class FormWizard extends StatefulWidget {
     String label = 'Email',
     String? hint,
     bool required = true,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.emailField(
     name: name,
     label: label,
     hint: hint,
     required: required,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   /// Phone text field preset.
@@ -47,11 +60,23 @@ class FormWizard extends StatefulWidget {
     String label = 'Phone',
     String? hint,
     bool required = true,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.phoneField(
     name: name,
     label: label,
     hint: hint,
     required: required,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   /// Password field preset.
@@ -61,12 +86,24 @@ class FormWizard extends StatefulWidget {
     String? hint,
     bool required = true,
     int minLength = 8,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.passwordField(
     name: name,
     label: label,
     hint: hint,
     required: required,
     minLength: minLength,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   /// OTP field preset.
@@ -74,8 +111,23 @@ class FormWizard extends StatefulWidget {
     String name = 'otp',
     String label = 'OTP',
     int length = 6,
-  }) =>
-      FormWizardFieldPresets.otpField(name: name, label: label, length: length);
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
+  }) => FormWizardFieldPresets.otpField(
+    name: name,
+    label: label,
+    length: length,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
+  );
 
   /// Name field preset.
   static FormWizardFieldModel nameField({
@@ -83,11 +135,23 @@ class FormWizard extends StatefulWidget {
     String label = 'Full Name',
     String? hint,
     bool required = true,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.nameField(
     name: name,
     label: label,
     hint: hint,
     required: required,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   /// Street address field preset.
@@ -96,11 +160,23 @@ class FormWizard extends StatefulWidget {
     String label = 'Street Address',
     String? hint,
     bool required = true,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.streetField(
     name: name,
     label: label,
     hint: hint,
     required: required,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   /// City field preset.
@@ -108,10 +184,22 @@ class FormWizard extends StatefulWidget {
     String name = 'city',
     String label = 'City',
     bool required = true,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.cityField(
     name: name,
     label: label,
     required: required,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   /// ZIP/postal code field preset.
@@ -119,10 +207,22 @@ class FormWizard extends StatefulWidget {
     String name = 'zip',
     String label = 'ZIP / Postal Code',
     bool required = true,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.zipField(
     name: name,
     label: label,
     required: required,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   /// Country dropdown preset.
@@ -141,11 +241,23 @@ class FormWizard extends StatefulWidget {
       'United States',
     ],
     bool required = true,
+    List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) => FormWizardFieldPresets.countryDropdown(
     name: name,
     label: label,
     countries: countries,
     required: required,
+    validators: validators,
+    contextValidators: contextValidators,
+    asyncValidators: asyncValidators,
+    validationDependsOn: validationDependsOn,
+    asyncValidationDebounce: asyncValidationDebounce,
   );
 
   @override
@@ -521,8 +633,9 @@ class _SubmitButton extends ConsumerWidget {
     final isFormValid = ref.watch(formValidityProvider);
 
     return ElevatedButton(
-      onPressed: isFormValid ? () => controller.submitForm(onSubmit) : null,
-      child: Text('Submit'),
+      onPressed:
+          isFormValid ? () => controller.submitFormAsync(onSubmit) : null,
+      child: const Text('Submit'),
     );
   }
 }

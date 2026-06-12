@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controller/form_wizard_controller.dart';
 import '../../models/form_wizard_field_model.dart';
 import '../../providers/form_providers.dart';
+import '../../validators/validators.dart';
 import '../form_wizard_field.dart';
 
 /// Defines one step in a [FormWizardStepper].
@@ -222,17 +223,39 @@ class _FormWizardStepperViewState
 
   bool _watchStepValidity(WidgetRef ref, List<FormWizardFieldModel> fields) {
     final values = <String, dynamic>{};
+    var hasPendingValidation = false;
+    var hasStoredError = false;
 
     for (final field in fields) {
       values[field.name] = ref.watch(
         formStateProvider.select((state) => state.values[field.name]),
       );
+      hasStoredError =
+          hasStoredError ||
+          ref.watch(
+                formStateProvider.select((state) => state.errors[field.name]),
+              ) !=
+              null;
+      hasPendingValidation =
+          hasPendingValidation ||
+          ref.watch(fieldValidatingProvider(field.name));
       for (final dependency in field.visibleWhenDependsOn) {
         values[dependency] = ref.watch(
           formStateProvider.select((state) => state.values[dependency]),
         );
       }
+      for (final dependency in field.validationDependsOn) {
+        values[dependency] = ref.watch(
+          formStateProvider.select((state) => state.values[dependency]),
+        );
+      }
     }
+
+    if (hasPendingValidation || hasStoredError) return false;
+
+    final context = FormWizardValidationContext(
+      Map<String, dynamic>.unmodifiable(values),
+    );
 
     for (final field in fields) {
       final isVisible = field.visibleWhen?.call(values) ?? true;
@@ -241,6 +264,10 @@ class _FormWizardStepperViewState
       final value = values[field.name]?.toString();
       for (final validator in field.validators ?? const []) {
         if (validator(value) != null) return false;
+      }
+      for (final validator
+          in field.contextValidators ?? const <FormWizardContextValidator>[]) {
+        if (validator(value, context) != null) return false;
       }
     }
 
@@ -253,15 +280,15 @@ class _FormWizardStepperViewState
     widget.onStepChanged?.call(nextStep);
   }
 
-  void _next() {
-    final notifier = ref.read(formStateProvider.notifier);
-    var isValid = true;
+  Future<void> _next() async {
+    final isValid = await widget.controller.validateFieldsAsync(
+      _currentFields.map((field) => field.name),
+    );
 
-    for (final field in _currentFields) {
-      isValid = notifier.validateField(field.name) && isValid;
+    if (!isValid) {
+      widget.controller.focusFirstInvalidField();
+      return;
     }
-
-    if (!isValid) return;
 
     if (_currentStep == widget.steps.length - 1) {
       widget.onFinish(widget.controller.formData);
@@ -287,7 +314,7 @@ class _FormWizardStepperViewState
           currentStep: _currentStep,
           steps: widget.steps,
           isCurrentStepValid: isValid,
-          onNext: isValid ? _next : null,
+          onNext: isValid ? () => _next() : null,
           onBack: _currentStep == 0 ? null : () => _setStep(_currentStep - 1),
           onStepTapped: _setStep,
           fields: fieldsWidget,
@@ -298,7 +325,7 @@ class _FormWizardStepperViewState
     return Stepper(
       currentStep: _currentStep,
       onStepTapped: _setStep,
-      onStepContinue: _next,
+      onStepContinue: () => _next(),
       onStepCancel: _currentStep == 0 ? null : () => _setStep(_currentStep - 1),
       controlsBuilder: (context, details) {
         return _StepperControls(
@@ -309,7 +336,7 @@ class _FormWizardStepperViewState
           nextLabel: widget.nextLabel,
           backLabel: widget.backLabel,
           finishLabel: widget.finishLabel,
-          onNext: _next,
+          onNext: () => _next(),
           onBack: () => _setStep(_currentStep - 1),
         );
       },

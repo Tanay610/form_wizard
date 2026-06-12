@@ -1,3 +1,31 @@
+## 0.2.0
+
+### Validation Engine
+- Added dependency-aware cross-field validation with `contextValidators` and `validationDependsOn`.
+- Added debounced async validators with stale-result cancellation for server-backed checks.
+- Added `Validators.matchesField(...)` for confirm-password and related field matching.
+- Added `validateFieldAsync`, `validateFieldsAsync`, `validateFormAsync`, and `submitFormAsync`.
+
+### Performance
+- Kept field updates selective: edited fields and explicitly dependent fields update, unrelated fields stay static.
+- Full-form validation now batches errors into a single state update instead of emitting once per field.
+- Async validation tracks pending fields without rebuilding the whole form.
+
+### Field State & UX
+- Added dirty, touched, submitted, and validating state to `FormState`.
+- Added narrow providers for field value, error, dirty, touched, and validating state.
+- Added `FormWizardController.isValidating`.
+- Added focus/scroll to the first invalid rendered field on failed submit.
+
+### Field APIs
+- Added `valueTransformer` and `transformedFormData` for typed submit values.
+- Added common TextField options: input formatters, autofill hints, text input actions, max/min lines, max length, enabled/read-only state, capitalization, and submit callbacks.
+- Improved field presets with autofill hints, input formatters, and keyboard actions.
+
+### Reliability
+- Hardened built-in templates so internally owned controllers are created and disposed by widget lifecycle.
+- Updated the example app with async username validation and dependency-aware confirm password validation.
+
 ## 0.1.2
 
 ### Performance

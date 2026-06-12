@@ -416,4 +416,172 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('async validators update only their field state', (tester) async {
+    final controller = FormWizardController();
+    var usernameBuilds = 0;
+    var emailBuilds = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FormWizard(
+            controller: controller,
+            fields: [
+              FormWizardFieldModel(
+                name: 'username',
+                label: 'Username',
+                type: FieldType.custom,
+                asyncValidationDebounce: Duration.zero,
+                asyncValidators: [
+                  (value, context) async {
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 10),
+                    );
+                    return value == 'taken' ? 'Username is taken' : null;
+                  },
+                ],
+                customBuilder: (textController, errorText, onChanged) {
+                  usernameBuilds++;
+                  return TextField(
+                    key: const ValueKey<String>('username-field'),
+                    controller: textController,
+                    onChanged: onChanged,
+                    decoration: InputDecoration(errorText: errorText),
+                  );
+                },
+              ),
+              FormWizardFieldModel(
+                name: 'email',
+                label: 'Email',
+                type: FieldType.custom,
+                customBuilder: (textController, errorText, onChanged) {
+                  emailBuilds++;
+                  return TextField(
+                    key: const ValueKey<String>('email-field'),
+                    controller: textController,
+                    onChanged: onChanged,
+                    decoration: InputDecoration(errorText: errorText),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    usernameBuilds = 0;
+    emailBuilds = 0;
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('username-field')),
+      'taken',
+    );
+    await tester.pump();
+
+    expect(controller.isValidating.value, isTrue);
+    expect(emailBuilds, 0);
+
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(find.text('Username is taken'), findsOneWidget);
+    expect(controller.isValidating.value, isFalse);
+    expect(usernameBuilds, greaterThan(0));
+    expect(emailBuilds, 0);
+  });
+
+  testWidgets('validation dependencies revalidate dependent fields', (
+    tester,
+  ) async {
+    final controller = FormWizardController();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FormWizard(
+            controller: controller,
+            fields: [
+              FormWizardFieldModel(
+                name: 'password',
+                label: 'Password',
+                type: FieldType.password,
+              ),
+              FormWizardFieldModel(
+                name: 'confirm_password',
+                label: 'Confirm Password',
+                type: FieldType.password,
+                contextValidators: [
+                  Validators.matchesField(
+                    'password',
+                    message: 'Passwords do not match',
+                  ),
+                ],
+                validationDependsOn: const ['password'],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Password'),
+      'first-secret',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Confirm Password'),
+      'first-secret',
+    );
+    await tester.pump();
+
+    expect(find.text('Passwords do not match'), findsNothing);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Password'),
+      'second-secret',
+    );
+    await tester.pump();
+
+    expect(find.text('Passwords do not match'), findsOneWidget);
+  });
+
+  testWidgets('controller can submit transformed values', (tester) async {
+    final controller = FormWizardController();
+    Map<String, dynamic>? submitted;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FormWizard(
+            controller: controller,
+            fields: [
+              FormWizardFieldModel(
+                name: 'age',
+                label: 'Age',
+                type: FieldType.number,
+                validators: [Validators.required(), Validators.number()],
+                valueTransformer:
+                    (value, context) => int.tryParse(value?.toString() ?? ''),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Age'), '42');
+    await tester.pump();
+
+    final isSubmitted = await controller.submitFormAsync(
+      (values) => submitted = values,
+      transformValues: true,
+    );
+
+    expect(isSubmitted, isTrue);
+    expect(submitted, containsPair('age', 42));
+  });
 }

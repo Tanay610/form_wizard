@@ -7,9 +7,9 @@ import '../../validators/validators.dart';
 import '../form_wizard_form.dart';
 
 /// Ready-to-use address form.
-class AddressForm extends StatelessWidget {
+class AddressForm extends StatefulWidget {
   /// Creates an address template.
-  AddressForm({
+  const AddressForm({
     super.key,
     required this.onSubmit,
     this.includeState = true,
@@ -19,8 +19,8 @@ class AddressForm extends StatelessWidget {
     this.zipField,
     this.countryField,
     this.submitLabel = 'Save Address',
-    FormWizardController? controller,
-  }) : controller = controller ?? FormWizardController();
+    this.controller,
+  });
 
   final bool includeState;
   final FormWizardFieldModel? streetField;
@@ -30,17 +30,52 @@ class AddressForm extends StatelessWidget {
   final FormWizardFieldModel? countryField;
   final String submitLabel;
   final void Function(Map<String, dynamic> addressMap) onSubmit;
-  final FormWizardController controller;
+  final FormWizardController? controller;
+
+  @override
+  State<AddressForm> createState() => _AddressFormState();
+}
+
+class _AddressFormState extends State<AddressForm> {
+  late FormWizardController _controller;
+  late bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void didUpdateWidget(covariant AddressForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return FormWizard(
-      controller: controller,
+      controller: _controller,
       fields: [
-        streetField ?? FormWizardFieldPresets.streetField(),
-        cityField ?? FormWizardFieldPresets.cityField(),
-        if (includeState)
-          stateField ??
+        widget.streetField ?? FormWizardFieldPresets.streetField(),
+        widget.cityField ?? FormWizardFieldPresets.cityField(),
+        if (widget.includeState)
+          widget.stateField ??
               FormWizardFieldModel(
                 name: 'state',
                 label: 'State',
@@ -54,12 +89,12 @@ class AddressForm extends StatelessWidget {
                         values['country'] == 'Canada' ||
                         values['country'] == 'India',
               ),
-        zipField ?? FormWizardFieldPresets.zipField(),
-        countryField ?? FormWizardFieldPresets.countryDropdown(),
+        widget.zipField ?? FormWizardFieldPresets.zipField(),
+        widget.countryField ?? FormWizardFieldPresets.countryDropdown(),
       ],
       submitButton: ElevatedButton(
-        onPressed: () => controller.submitForm(onSubmit),
-        child: Text(submitLabel),
+        onPressed: () => _controller.submitForm(widget.onSubmit),
+        child: Text(widget.submitLabel),
       ),
       onSubmit: (_) {},
     );

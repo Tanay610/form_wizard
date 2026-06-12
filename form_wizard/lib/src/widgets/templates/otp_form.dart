@@ -7,8 +7,8 @@ import '../../field_presets.dart';
 import '../../models/form_wizard_field_model.dart';
 import '../form_wizard_form.dart';
 
-class OTPVerificationForm extends StatelessWidget {
-  OTPVerificationForm({
+class OTPVerificationForm extends StatefulWidget {
+  const OTPVerificationForm({
     super.key,
     required this.onVerify,
     this.onResend,
@@ -17,8 +17,8 @@ class OTPVerificationForm extends StatelessWidget {
     this.otpField,
     this.verifyLabel = 'Verify',
     this.resendLabel = 'Resend code',
-    FormWizardController? controller,
-  }) : controller = controller ?? FormWizardController();
+    this.controller,
+  });
 
   final int otpLength;
   final int resendCooldownSeconds;
@@ -27,17 +27,52 @@ class OTPVerificationForm extends StatelessWidget {
   final String resendLabel;
   final void Function(String otp) onVerify;
   final VoidCallback? onResend;
-  final FormWizardController controller;
+  final FormWizardController? controller;
+
+  @override
+  State<OTPVerificationForm> createState() => _OTPVerificationFormState();
+}
+
+class _OTPVerificationFormState extends State<OTPVerificationForm> {
+  late FormWizardController _controller;
+  late bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void didUpdateWidget(covariant OTPVerificationForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return FormWizard(
-      controller: controller,
+      controller: _controller,
       fields: [
-        otpField ??
+        widget.otpField ??
             FormWizardFieldPresets.otpField(
-              length: otpLength,
-              label: '$otpLength-digit code',
+              length: widget.otpLength,
+              label: '${widget.otpLength}-digit code',
             ),
       ],
       submitButton: Column(
@@ -45,16 +80,16 @@ class OTPVerificationForm extends StatelessWidget {
         children: [
           ElevatedButton(
             onPressed:
-                () => controller.submitForm(
-                  (values) => onVerify(values['otp']?.toString() ?? ''),
+                () => _controller.submitForm(
+                  (values) => widget.onVerify(values['otp']?.toString() ?? ''),
                 ),
-            child: Text(verifyLabel),
+            child: Text(widget.verifyLabel),
           ),
-          if (onResend != null)
+          if (widget.onResend != null)
             _OtpResendButton(
-              label: resendLabel,
-              cooldownSeconds: resendCooldownSeconds,
-              onResend: onResend!,
+              label: widget.resendLabel,
+              cooldownSeconds: widget.resendCooldownSeconds,
+              onResend: widget.onResend!,
             ),
         ],
       ),

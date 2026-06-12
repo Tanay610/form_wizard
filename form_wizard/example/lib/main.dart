@@ -62,7 +62,31 @@ class _ExampleFormPageState extends State<ExampleFormPage> {
     FormWizardFieldPresets.nameField(label: 'Full Name', required: true),
 
     FormWizardFieldPresets.emailField(label: 'Email Address', required: true),
+    FormWizardFieldModel(
+      name: 'username',
+      label: 'Username',
+      type: FieldType.text,
+      hint: 'Try "taken"',
+      validators: [Validators.required()],
+      asyncValidationDebounce: const Duration(milliseconds: 250),
+      asyncValidators: [
+        (value, context) async {
+          await Future<void>.delayed(const Duration(milliseconds: 350));
+          return value == 'taken' ? 'Username is already taken' : null;
+        },
+      ],
+    ),
     FormWizardFieldPresets.passwordField(label: 'Password', required: true),
+    FormWizardFieldModel(
+      name: 'confirm_password',
+      label: 'Confirm Password',
+      type: FieldType.password,
+      validators: [Validators.required()],
+      contextValidators: [
+        Validators.matchesField('password', message: 'Passwords do not match'),
+      ],
+      validationDependsOn: const ['password'],
+    ),
     FormWizardFieldPresets.countryDropdown(
       label: 'Country',
       required: true,

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../models/form_state.dart' as form_wizard;
 import '../models/form_wizard_field_array_model.dart';
@@ -18,8 +19,13 @@ class FormWizardController {
       ValueNotifier<Map<String, String?>>(const <String, String?>{});
   final ValueNotifier<Map<String, List<String>>> _fieldArrays =
       ValueNotifier<Map<String, List<String>>>(const <String, List<String>>{});
+  final ValueNotifier<bool> _isValidating = ValueNotifier<bool>(false);
 
   FormStateNotifier? _notifier;
+  final Map<String, FormWizardValueTransformer> _valueTransformers =
+      <String, FormWizardValueTransformer>{};
+  final Map<String, FocusNode> _focusNodes = <String, FocusNode>{};
+  final Map<String, GlobalKey> _fieldKeys = <String, GlobalKey>{};
 
   /// Listen to this from submit buttons or parent widgets.
   ValueListenable<bool> get isFormValid => _isFormValid;
@@ -33,9 +39,27 @@ class FormWizardController {
   /// Listen to this when a parent needs dynamic field array item IDs.
   ValueListenable<Map<String, List<String>>> get fieldArrays => _fieldArrays;
 
+  /// Listen to this when async validation is running.
+  ValueListenable<bool> get isValidating => _isValidating;
+
   /// Current form values.
   Map<String, dynamic> get formData =>
       Map<String, dynamic>.unmodifiable(_formValues.value);
+
+  /// Current form values after applying configured value transformers.
+  Map<String, dynamic> get transformedFormData {
+    final rawValues = _formValues.value;
+    final context = FormWizardValidationContext(
+      Map<String, dynamic>.unmodifiable(rawValues),
+    );
+
+    return Map<String, dynamic>.unmodifiable({
+      for (final entry in rawValues.entries)
+        entry.key:
+            _valueTransformers[entry.key]?.call(entry.value, context) ??
+            entry.value,
+    });
+  }
 
   /// Returns values for a dynamic field array grouped by item order.
   List<Map<String, dynamic>> getFieldArrayValues(String arrayName) {
@@ -62,6 +86,19 @@ class FormWizardController {
     List<FormWizardFieldArrayModel> fieldArrays =
         const <FormWizardFieldArrayModel>[],
   }) {
+    _valueTransformers
+      ..clear()
+      ..addEntries(
+        fields
+            .where((field) => field.valueTransformer != null)
+            .map(
+              (field) => MapEntry<String, FormWizardValueTransformer>(
+                field.name,
+                field.valueTransformer!,
+              ),
+            ),
+      );
+
     final initialValues = <String, dynamic>{
       for (final field in fields) field.name: field.initialValue ?? '',
     };
@@ -70,6 +107,24 @@ class FormWizardController {
         field.name: List<Validator>.unmodifiable(
           field.validators ?? const <Validator>[],
         ),
+    };
+    final contextValidators = <String, List<FormWizardContextValidator>>{
+      for (final field in fields)
+        field.name: List<FormWizardContextValidator>.unmodifiable(
+          field.contextValidators ?? const <FormWizardContextValidator>[],
+        ),
+    };
+    final asyncValidators = <String, List<FormWizardAsyncValidator>>{
+      for (final field in fields)
+        field.name: List<FormWizardAsyncValidator>.unmodifiable(
+          field.asyncValidators ?? const <FormWizardAsyncValidator>[],
+        ),
+    };
+    final asyncValidationDebounces = <String, Duration>{
+      for (final field in fields)
+        if ((field.asyncValidators ?? const <FormWizardAsyncValidator>[])
+            .isNotEmpty)
+          field.name: field.asyncValidationDebounce,
     };
     final visibilityPredicates = <String, FormWizardVisibilityPredicate>{
       for (final field in fields)
@@ -80,12 +135,21 @@ class FormWizardController {
         if (field.visibleWhenDependsOn.isNotEmpty)
           field.name: List<String>.unmodifiable(field.visibleWhenDependsOn),
     };
+    final validationDependencies = <String, List<String>>{
+      for (final field in fields)
+        if (field.validationDependsOn.isNotEmpty)
+          field.name: List<String>.unmodifiable(field.validationDependsOn),
+    };
 
     _notifier?.configure(
       initialValues: initialValues,
       validators: validators,
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      asyncValidationDebounces: asyncValidationDebounces,
       visibilityPredicates: visibilityPredicates,
       visibilityDependencies: visibilityDependencies,
+      validationDependencies: validationDependencies,
       initialFieldArrayCounts: {
         for (final fieldArray in fieldArrays)
           fieldArray.name: fieldArray.initialItemCount,
@@ -116,6 +180,27 @@ class FormWizardController {
 
     if (_isFormValid.value != state.isValid) {
       _isFormValid.value = state.isValid;
+    }
+
+    final nextIsValidating = state.validatingFields.any(
+      (fieldName) => state.visibleFields[fieldName] != false,
+    );
+    if (_isValidating.value != nextIsValidating) {
+      _isValidating.value = nextIsValidating;
+    }
+  }
+
+  /// Registers a rendered field so invalid submits can focus and scroll to it.
+  void registerField(String fieldName, FocusNode focusNode, GlobalKey key) {
+    _focusNodes[fieldName] = focusNode;
+    _fieldKeys[fieldName] = key;
+  }
+
+  /// Removes a rendered field registration.
+  void unregisterField(String fieldName, FocusNode focusNode) {
+    if (_focusNodes[fieldName] == focusNode) {
+      _focusNodes.remove(fieldName);
+      _fieldKeys.remove(fieldName);
     }
   }
 
@@ -160,9 +245,24 @@ class FormWizardController {
     return _notifier?.validateField(fieldName) ?? false;
   }
 
+  /// Validates one field and waits for async validators.
+  Future<bool> validateFieldAsync(String fieldName) {
+    return _notifier?.validateFieldAsync(fieldName) ?? Future.value(false);
+  }
+
+  /// Validates selected fields and waits for async validators.
+  Future<bool> validateFieldsAsync(Iterable<String> fieldNames) {
+    return _notifier?.validateFieldsAsync(fieldNames) ?? Future.value(false);
+  }
+
   /// Validates the entire form.
   bool validateForm() {
     return _notifier?.validateForm() ?? false;
+  }
+
+  /// Validates the entire form and waits for async validators.
+  Future<bool> validateFormAsync() {
+    return _notifier?.validateFormAsync() ?? Future.value(false);
   }
 
   /// Backwards-compatible alias for older package versions.
@@ -171,12 +271,60 @@ class FormWizardController {
   }
 
   /// Validates and submits the form.
-  bool submitForm(void Function(Map<String, dynamic> values)? onValid) {
+  bool submitForm(
+    void Function(Map<String, dynamic> values)? onValid, {
+    bool transformValues = false,
+    bool focusFirstInvalid = true,
+  }) {
     final isValid = validateForm();
     if (isValid) {
-      onValid?.call(formData);
+      onValid?.call(transformValues ? transformedFormData : formData);
+    } else if (focusFirstInvalid) {
+      focusFirstInvalidField();
     }
     return isValid;
+  }
+
+  /// Validates, waits for async validators, and submits the form.
+  Future<bool> submitFormAsync(
+    void Function(Map<String, dynamic> values)? onValid, {
+    bool transformValues = false,
+    bool focusFirstInvalid = true,
+  }) async {
+    final isValid = await validateFormAsync();
+    if (isValid) {
+      onValid?.call(transformValues ? transformedFormData : formData);
+    } else if (focusFirstInvalid) {
+      focusFirstInvalidField();
+    }
+    return isValid;
+  }
+
+  /// Focuses and scrolls to the first currently rendered invalid field.
+  bool focusFirstInvalidField() {
+    for (final entry in _fieldErrors.value.entries) {
+      if (entry.value == null) continue;
+
+      final focusNode = _focusNodes[entry.key];
+      final context = _fieldKeys[entry.key]?.currentContext;
+
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        );
+      }
+
+      if (focusNode != null && focusNode.canRequestFocus) {
+        focusNode.requestFocus();
+        return true;
+      }
+
+      if (context != null) return true;
+    }
+
+    return false;
   }
 
   /// Releases resources owned by this controller.
@@ -185,5 +333,8 @@ class FormWizardController {
     _formValues.dispose();
     _fieldErrors.dispose();
     _fieldArrays.dispose();
+    _isValidating.dispose();
+    _focusNodes.clear();
+    _fieldKeys.clear();
   }
 }

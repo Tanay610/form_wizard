@@ -8,9 +8,9 @@ import '../form_wizard_form.dart';
 import 'template_options.dart';
 
 /// Ready-to-use login form.
-class LoginForm extends StatelessWidget {
+class LoginForm extends StatefulWidget {
   /// Creates a login template.
-  LoginForm({
+  const LoginForm({
     super.key,
     required this.onLogin,
     this.identityType = FormWizardIdentityType.email,
@@ -19,8 +19,8 @@ class LoginForm extends StatelessWidget {
     this.identityField,
     this.passwordField,
     this.submitLabel = 'Login',
-    FormWizardController? controller,
-  }) : controller = controller ?? FormWizardController();
+    this.controller,
+  });
 
   final FormWizardIdentityType identityType;
   final bool rememberMe;
@@ -29,39 +29,7 @@ class LoginForm extends StatelessWidget {
   final FormWizardFieldModel? passwordField;
   final String submitLabel;
   final void Function(String identity, String password) onLogin;
-  final FormWizardController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return FormWizard(
-      controller: controller,
-      fields: [
-        identityField ?? identityFieldFor(identityType),
-        passwordField ?? FormWizardFieldPresets.passwordField(),
-      ],
-      submitButton: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (rememberMe || forgotPasswordLink != null)
-            _LoginExtras(
-              showRememberMe: rememberMe,
-              forgotPasswordLink: forgotPasswordLink,
-            ),
-          ElevatedButton(
-            onPressed:
-                () => controller.submitForm((values) {
-                  onLogin(
-                    values[identityName(identityType)]?.toString() ?? '',
-                    values['password']?.toString() ?? '',
-                  );
-                }),
-            child: Text(submitLabel),
-          ),
-        ],
-      ),
-      onSubmit: (_) {},
-    );
-  }
+  final FormWizardController? controller;
 
   /// Builds the default identity field for [type].
   static FormWizardFieldModel identityFieldFor(FormWizardIdentityType type) {
@@ -84,6 +52,75 @@ class LoginForm extends StatelessWidget {
       FormWizardIdentityType.phone => 'phone',
       FormWizardIdentityType.username => 'username',
     };
+  }
+
+  @override
+  State<LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<LoginForm> {
+  late FormWizardController _controller;
+  late bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void didUpdateWidget(covariant LoginForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FormWizard(
+      controller: _controller,
+      fields: [
+        widget.identityField ?? LoginForm.identityFieldFor(widget.identityType),
+        widget.passwordField ?? FormWizardFieldPresets.passwordField(),
+      ],
+      submitButton: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.rememberMe || widget.forgotPasswordLink != null)
+            _LoginExtras(
+              showRememberMe: widget.rememberMe,
+              forgotPasswordLink: widget.forgotPasswordLink,
+            ),
+          ElevatedButton(
+            onPressed:
+                () => _controller.submitForm((values) {
+                  widget.onLogin(
+                    values[LoginForm.identityName(widget.identityType)]
+                            ?.toString() ??
+                        '',
+                    values['password']?.toString() ?? '',
+                  );
+                }),
+            child: Text(widget.submitLabel),
+          ),
+        ],
+      ),
+      onSubmit: (_) {},
+    );
   }
 }
 

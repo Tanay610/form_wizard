@@ -9,6 +9,10 @@ class FormState {
     this.errors = const <String, String?>{},
     this.visibleFields = const <String, bool>{},
     this.fieldArrays = const <String, List<String>>{},
+    this.dirtyFields = const <String>{},
+    this.touchedFields = const <String>{},
+    this.validatingFields = const <String>{},
+    this.isSubmitted = false,
     this.nextArrayItemId = 0,
   });
 
@@ -24,6 +28,18 @@ class FormState {
   /// Dynamic field array item IDs keyed by array name.
   final Map<String, List<String>> fieldArrays;
 
+  /// Field names whose value has changed from its initial value.
+  final Set<String> dirtyFields;
+
+  /// Field names that have received user interaction or submit validation.
+  final Set<String> touchedFields;
+
+  /// Field names currently running asynchronous validation.
+  final Set<String> validatingFields;
+
+  /// Whether submit validation has been attempted.
+  final bool isSubmitted;
+
   /// Monotonic counter used to create stable dynamic field array item IDs.
   final int nextArrayItemId;
 
@@ -33,6 +49,10 @@ class FormState {
     Map<String, String?>? errors,
     Map<String, bool>? visibleFields,
     Map<String, List<String>>? fieldArrays,
+    Set<String>? dirtyFields,
+    Set<String>? touchedFields,
+    Set<String>? validatingFields,
+    bool? isSubmitted,
     int? nextArrayItemId,
   }) {
     return FormState(
@@ -40,6 +60,10 @@ class FormState {
       errors: errors ?? this.errors,
       visibleFields: visibleFields ?? this.visibleFields,
       fieldArrays: fieldArrays ?? this.fieldArrays,
+      dirtyFields: dirtyFields ?? this.dirtyFields,
+      touchedFields: touchedFields ?? this.touchedFields,
+      validatingFields: validatingFields ?? this.validatingFields,
+      isSubmitted: isSubmitted ?? this.isSubmitted,
       nextArrayItemId: nextArrayItemId ?? this.nextArrayItemId,
     );
   }
@@ -75,9 +99,23 @@ class FormState {
 
   /// Whether the current state has no validation errors.
   bool get isValid {
+    final hasVisiblePendingValidation = validatingFields.any(
+      (fieldName) => visibleFields[fieldName] != false,
+    );
+    if (hasVisiblePendingValidation) return false;
+
     return errors.entries.every((entry) {
       if (visibleFields[entry.key] == false) return true;
       return entry.value == null;
     });
   }
+
+  /// Whether [fieldName] has changed from its initial value.
+  bool isDirty(String fieldName) => dirtyFields.contains(fieldName);
+
+  /// Whether [fieldName] has been interacted with or validated on submit.
+  bool isTouched(String fieldName) => touchedFields.contains(fieldName);
+
+  /// Whether [fieldName] is currently running async validation.
+  bool isValidating(String fieldName) => validatingFields.contains(fieldName);
 }

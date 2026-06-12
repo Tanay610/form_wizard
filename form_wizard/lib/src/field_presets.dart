@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'models/form_wizard_field_model.dart';
 import 'validators/validators.dart';
@@ -14,6 +15,12 @@ class FormWizardFieldPresets {
     String? hint,
     bool required = true,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
@@ -25,7 +32,13 @@ class FormWizardFieldPresets {
         Validators.email(),
         ...validators,
       ],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
       keyboardType: TextInputType.emailAddress,
+      autofillHints: const [AutofillHints.email],
+      textInputAction: TextInputAction.next,
     );
   }
 
@@ -36,6 +49,12 @@ class FormWizardFieldPresets {
     String? hint,
     bool required = true,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
@@ -43,11 +62,19 @@ class FormWizardFieldPresets {
       hint: hint,
       type: FieldType.text,
       keyboardType: TextInputType.phone,
+      autofillHints: const [AutofillHints.telephoneNumber],
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-() ]')),
+      ],
       validators: [
         if (required) Validators.required(),
         Validators.phone(),
         ...validators,
       ],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
     );
   }
 
@@ -59,6 +86,12 @@ class FormWizardFieldPresets {
     bool required = true,
     int minLength = 8,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
@@ -70,6 +103,11 @@ class FormWizardFieldPresets {
         Validators.minLength(minLength),
         ...validators,
       ],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
+      autofillHints: const [AutofillHints.password],
       customBuilder: (controller, errorText, onChanged) {
         return _PasswordFieldPreset(
           controller: controller,
@@ -88,18 +126,33 @@ class FormWizardFieldPresets {
     String label = 'OTP',
     int length = 6,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
       label: label,
       type: FieldType.number,
       keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.done,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(length),
+      ],
       validators: [
         Validators.required(),
         Validators.number(),
         Validators.exactLength(length, message: 'Enter the $length-digit code'),
         ...validators,
       ],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
     );
   }
 
@@ -110,13 +163,25 @@ class FormWizardFieldPresets {
     String? hint,
     bool required = true,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
       label: label,
       hint: hint,
       type: FieldType.text,
+      autofillHints: const [AutofillHints.name],
+      textInputAction: TextInputAction.next,
       validators: [if (required) Validators.required(), ...validators],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
     );
   }
 
@@ -127,13 +192,25 @@ class FormWizardFieldPresets {
     String? hint,
     bool required = true,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
       label: label,
       hint: hint,
       type: FieldType.text,
+      autofillHints: const [AutofillHints.streetAddressLine1],
+      textInputAction: TextInputAction.next,
       validators: [if (required) Validators.required(), ...validators],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
     );
   }
 
@@ -143,12 +220,24 @@ class FormWizardFieldPresets {
     String label = 'City',
     bool required = true,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
       label: label,
       type: FieldType.text,
+      autofillHints: const [AutofillHints.addressCity],
+      textInputAction: TextInputAction.next,
       validators: [if (required) Validators.required(), ...validators],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
     );
   }
 
@@ -158,13 +247,25 @@ class FormWizardFieldPresets {
     String label = 'ZIP / Postal Code',
     bool required = true,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
       label: label,
       type: FieldType.text,
       keyboardType: TextInputType.streetAddress,
+      autofillHints: const [AutofillHints.postalCode],
+      textInputAction: TextInputAction.next,
       validators: [if (required) Validators.required(), ...validators],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
     );
   }
 
@@ -185,13 +286,24 @@ class FormWizardFieldPresets {
     ],
     bool required = true,
     List<Validator> validators = const <Validator>[],
+    List<FormWizardContextValidator> contextValidators =
+        const <FormWizardContextValidator>[],
+    List<FormWizardAsyncValidator> asyncValidators =
+        const <FormWizardAsyncValidator>[],
+    List<String> validationDependsOn = const <String>[],
+    Duration asyncValidationDebounce = const Duration(milliseconds: 350),
   }) {
     return FormWizardFieldModel(
       name: name,
       label: label,
       type: FieldType.dropdown,
       options: countries,
+      autofillHints: const [AutofillHints.countryName],
       validators: [if (required) Validators.required(), ...validators],
+      contextValidators: contextValidators,
+      asyncValidators: asyncValidators,
+      validationDependsOn: validationDependsOn,
+      asyncValidationDebounce: asyncValidationDebounce,
     );
   }
 }
@@ -238,6 +350,8 @@ class _PasswordFieldPresetState extends State<_PasswordFieldPreset> {
         return TextField(
           controller: widget.controller,
           obscureText: obscure,
+          autofillHints: const [AutofillHints.password],
+          textInputAction: TextInputAction.done,
           onChanged: widget.onChanged,
           decoration: InputDecoration(
             labelText: widget.label,

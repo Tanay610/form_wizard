@@ -7,9 +7,9 @@ import '../../validators/validators.dart';
 import '../form_wizard_form.dart';
 
 /// Ready-to-use payment details form.
-class PaymentForm extends StatelessWidget {
+class PaymentForm extends StatefulWidget {
   /// Creates a payment template.
-  PaymentForm({
+  const PaymentForm({
     super.key,
     required this.onSubmit,
     this.cardNumberField,
@@ -17,8 +17,8 @@ class PaymentForm extends StatelessWidget {
     this.cvvField,
     this.nameField,
     this.submitLabel = 'Pay',
-    FormWizardController? controller,
-  }) : controller = controller ?? FormWizardController();
+    this.controller,
+  });
 
   final FormWizardFieldModel? cardNumberField;
   final FormWizardFieldModel? expiryField;
@@ -26,14 +26,49 @@ class PaymentForm extends StatelessWidget {
   final FormWizardFieldModel? nameField;
   final String submitLabel;
   final void Function(Map<String, dynamic> paymentDetails) onSubmit;
-  final FormWizardController controller;
+  final FormWizardController? controller;
+
+  @override
+  State<PaymentForm> createState() => _PaymentFormState();
+}
+
+class _PaymentFormState extends State<PaymentForm> {
+  late FormWizardController _controller;
+  late bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void didUpdateWidget(covariant PaymentForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? FormWizardController();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return FormWizard(
-      controller: controller,
+      controller: _controller,
       fields: [
-        cardNumberField ??
+        widget.cardNumberField ??
             FormWizardFieldModel(
               name: 'card_number',
               label: 'Card Number',
@@ -46,7 +81,7 @@ class PaymentForm extends StatelessWidget {
                 ),
               ],
             ),
-        expiryField ??
+        widget.expiryField ??
             FormWizardFieldModel(
               name: 'expiry',
               label: 'Expiry MM/YY',
@@ -59,7 +94,7 @@ class PaymentForm extends StatelessWidget {
                 ),
               ],
             ),
-        cvvField ??
+        widget.cvvField ??
             FormWizardFieldModel(
               name: 'cvv',
               label: 'CVV',
@@ -69,15 +104,15 @@ class PaymentForm extends StatelessWidget {
                 Validators.regex(RegExp(r'^\d{3,4}$'), message: 'Invalid CVV'),
               ],
             ),
-        nameField ??
+        widget.nameField ??
             FormWizardFieldPresets.nameField(
               name: 'cardholder_name',
               label: 'Name on Card',
             ),
       ],
       submitButton: ElevatedButton(
-        onPressed: () => controller.submitForm(onSubmit),
-        child: Text(submitLabel),
+        onPressed: () => _controller.submitForm(widget.onSubmit),
+        child: Text(widget.submitLabel),
       ),
       onSubmit: (_) {},
     );
